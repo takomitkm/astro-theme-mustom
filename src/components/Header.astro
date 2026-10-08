@@ -3,7 +3,7 @@
 // 左侧抽屉总开关、门户、站名、搜索、右栏总开关（每侧一个折叠逻辑）
 import Icon from './Icon.astro';
 import T from './T.astro';
-import { header, site } from '../config';
+import { header, site, abs } from '../config';
 import { zhCN, enUS } from '../lib/locales';
 
 const sitename = {
@@ -25,7 +25,7 @@ const withEn = site.languages.includes('en-US');
     )
   }
   <div class="sitename">
-    <a href="/" class="sitename-link">
+    <a href={abs('/')} class="sitename-link">
       <T zh={sitename['zh-CN']} en={withEn ? sitename['en-US'] : undefined} html />
     </a>
   </div>

@@ -3,7 +3,7 @@
 import Icon from './Icon.astro';
 import T from './T.astro';
 import { zhCN, enUS } from '../lib/locales';
-import { site } from '../config';
+import { site, abs } from '../config';
 import { getPosts, nameMap, maxCount } from '../lib/posts';
 
 interface Props {
@@ -28,7 +28,7 @@ const here = normalize(Astro.url.pathname);
 <div class="Panel">
   <div class="card">
     <div class="caption">
-      <a class="panel-index" href={`/${mode}/`}>
+      <a class="panel-index" href={abs(`/${mode}/`)}>
         <span class="icon">
           <Icon name={mode === 'categories' ? 'folder-open' : 'tags'} fw />
         </span>

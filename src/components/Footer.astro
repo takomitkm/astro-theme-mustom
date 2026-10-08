@@ -64,7 +64,7 @@ const withEn = site.languages.includes('en-US');
     </span>
   </div>
   <div class="license">
-    <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license}></a>
+    <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
   </div>
 </div>
 
@@ -172,9 +172,11 @@ const withEn = site.languages.includes('en-US');
       display: inline-block;
       height: $footerLicenseHeight;
       width: $footerLicenseWidth;
-      background: url('/images/by-nc-sa.svg');
       background-color: var(--highlight);
       background-size: cover;
+      // 图标路径来自 config（需补 base 前缀），用内联 style 注入，scoped CSS 里拿不到
+      background-position: center;
+      background-repeat: no-repeat;
 
       &::before {
         display: none;

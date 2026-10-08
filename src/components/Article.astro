@@ -4,7 +4,7 @@
 import Icon from './Icon.astro';
 import T from './T.astro';
 import { zhCN, enUS } from '../lib/locales';
-import { site, qrcodes, license } from '../config';
+import { site, qrcodes, license, abs } from '../config';
 import type { PostMeta } from '../lib/posts';
 
 interface Props {
@@ -50,7 +50,7 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
                 {meta.categories.map((cate, i) => (
                   <>
                     {i !== 0 && <span>&nbsp;,</span>}
-                    <a href={`/categories/${encodeURIComponent(cate)}/`}>{cate}</a>
+                    <a href={abs(`/categories/${encodeURIComponent(cate)}/`)}>{cate}</a>
                   </>
                 ))}
               </div>
@@ -130,7 +130,7 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
             <div class="license-frame">
               <div>
                 <T zh={zhCN.article.license.author} en={withEn ? enUS.article.license.author : undefined} />
-                <a target="_blank" href="/">
+                <a target="_blank" href={abs('/')}>
                   {site.author}
                 </a>
               </div>
@@ -167,7 +167,7 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
           {meta && meta.tags.length > 0 && (
             <div class="tags">
               {meta.tags.map((tag) => (
-                <a href={`/tags/${encodeURIComponent(tag)}/`}># {tag}</a>
+                <a href={abs(`/tags/${encodeURIComponent(tag)}/`)}># {tag}</a>
               ))}
             </div>
           )}

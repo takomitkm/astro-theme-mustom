@@ -8,9 +8,22 @@
  * 改完这里即可换皮，无需动组件。
  */
 
+/**
+ * 部署在子路径时（GitHub Pages 的 `/<仓库名>/`）给站内绝对路径加的前缀。
+ * 挂在域名根目录（`<user>.github.io` 仓库）时置空字符串即可。
+ * astro.config.ts 的 `base` 直接取这里，两边不会走散。
+ */
+export const basePath = '/astro-theme-mustom';
+
+/** 给站内绝对路径补 base 前缀；外链（http/https/mailto）、协议相对与锚点原样返回 */
+export const abs = (p: string): string => {
+  if (!p || !p.startsWith('/') || p.startsWith('//')) return p;
+  return basePath + p;
+};
+
 export const site = {
-  /** 部署地址（与 astro.config.ts 的 site 保持一致，RSS 会用到） */
-  url: 'https://takomitkm.github.io',
+  /** 部署地址（与 astro.config.ts 的 site 保持一致，RSS/canonical 会用到） */
+  url: 'https://takomitkm.github.io/astro-theme-mustom',
   title: 'Mustom',
   author: 'Your Name',
   description: 'Mustom for Astro —— 简约设计的博客主题',
@@ -29,7 +42,7 @@ export const site = {
    * 填 `https://cdn.jsdelivr.net/gh/<user>/<repo>@<branch>` 启用；留空 = 资源走 GitHub Pages 本体。
    * 仓库里的 deploy.yml 会把 dist 同步推到 `cdn` 分支，jsdelivr 镜像的就是它。
    */
-  cdnPrefix: 'https://cdn.jsdelivr.net/gh/takomitkm/takomitkm.github.io@cdn',
+  cdnPrefix: 'https://cdn.jsdelivr.net/gh/takomitkm/astro-theme-mustom@cdn',
   /** 界面语言，二选一：['zh-CN'] 或 ['zh-CN', 'en-US']（开启后设置里出现语言切换） */
   languages: ['zh-CN', 'en-US'] as Array<'zh-CN' | 'en-US'>,
   /** 默认皮肤（首次访问生效，之后由访客自己保存的选择接管）：jshine | whiteblack | night */
@@ -58,7 +71,7 @@ export const header = {
 
 /** 左侧抽屉：名片 */
 export const brand = {
-  avatar: '/images/brand.svg',
+  avatar: abs('/images/brand.svg'),
   author: site.author,
   signature: {
     'zh-CN': '简约设计 · 静态优先',
@@ -79,9 +92,9 @@ export const menus = [
     caption: { 'zh-CN': '主菜单', 'en-US': 'MAIN' },
     icon: 'cube',
     items: [
-      { text: { 'zh-CN': '归档', 'en-US': 'Archive' }, icon: 'archive', link: '/archive/' },
-      { text: { 'zh-CN': '关于', 'en-US': 'About' }, icon: 'user', link: '/about/' },
-      { text: { 'zh-CN': '直播间', 'en-US': 'Live' }, icon: 'video', link: '/live/' },
+      { text: { 'zh-CN': '归档', 'en-US': 'Archive' }, icon: 'archive', link: abs('/archive/') },
+      { text: { 'zh-CN': '关于', 'en-US': 'About' }, icon: 'user', link: abs('/about/') },
+      { text: { 'zh-CN': '直播间', 'en-US': 'Live' }, icon: 'video', link: abs('/live/') },
     ],
   },
 ];
@@ -98,19 +111,19 @@ export const portals: Array<{
     name: 'GitHub',
     desc: '源码与 issue',
     link: 'https://github.com/your-name',
-    icon: '/images/portals/github.svg',
+    icon: abs('/images/portals/github.svg'),
   },
   {
     name: 'RSS',
     desc: '订阅本站更新',
-    link: '/rss.xml',
-    icon: '/images/portals/rss.svg',
+    link: abs('/rss.xml'),
+    icon: abs('/images/portals/rss.svg'),
   },
   {
     name: '安装 App',
     desc: 'PWA · 离线可用',
     link: '',
-    icon: '/images/pwa-192.png',
+    icon: abs('/images/pwa-192.png'),
     install: true,
   },
 ];
@@ -126,7 +139,7 @@ export const hitokoto = {
 /** B 站 BGM 播放器（右栏；≤1016px 时搬进一言卡片）。歌单格式见 public/data/bili-playlist.json，
  *  维护工具：deno run -A tools/bili_fav_dump.mjs <收藏夹 media_id> && deno run -A tools/bili_playlist_fix.mjs */
 export const biliplayer = {
-  playlist: '/data/bili-playlist.json',
+  playlist: abs('/data/bili-playlist.json'),
   countdown: 3,
 };
 
@@ -168,7 +181,7 @@ export const qrcodes: Array<{ path: string; text: { 'zh-CN': string; 'en-US': st
 export const license = {
   name: 'BY-NC-SA',
   url: 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
-  badge: '/images/by-nc-sa.svg',
+  badge: abs('/images/by-nc-sa.svg'),
 };
 
 /** 本主题署名（页脚） */
@@ -179,15 +192,16 @@ export const theme = {
   authorUrl: 'https://github.com/jinyaoMa',
 };
 
-/** 图片资源（可全部换成自己的）；wallpaper 为整站壁纸（html.wallpaper 时半透明纱下可见） */
+/** 图片资源（可全部换成自己的）；wallpaper 为整站壁纸（html.wallpaper 时半透明纱下可见）
+ *  全部经 abs() 补 base 前缀——public/ 下的文件不会被 Astro 自动加前缀 */
 export const images = {
-  favicon: '/images/favicon.svg',
-  appleTouchIcon: '/images/brand.svg',
-  avatar: '/images/avatar.svg',
-  empty: '/images/empty.svg',
-  hitokotoLeft: '/images/hitokoto-left.svg',
-  hitokotoRight: '/images/hitokoto-right.svg',
-  wallpaper: '/images/bg.jpg',
+  favicon: abs('/images/favicon.svg'),
+  appleTouchIcon: abs('/images/brand.svg'),
+  avatar: abs('/images/avatar.svg'),
+  empty: abs('/images/empty.svg'),
+  hitokotoLeft: abs('/images/hitokoto-left.svg'),
+  hitokotoRight: abs('/images/hitokoto-right.svg'),
+  wallpaper: abs('/images/bg.jpg'),
 };
 
 /** 文章默认封面（列表无 cover 时不再显示背景图） */

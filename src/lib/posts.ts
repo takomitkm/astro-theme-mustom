@@ -6,6 +6,7 @@ import { getCollection } from 'astro:content';
 import type { CollectionEntry } from 'astro:content';
 import { wordStat, type WordStat } from './wordcount';
 import { insertSpace } from '../markdown/remark-pangu';
+import { abs } from '../config';
 
 export type Post = CollectionEntry<'posts'>;
 
@@ -18,8 +19,9 @@ export async function getPosts(): Promise<Post[]> {
   return posts.sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 }
 
-/** glob loader 的 id 即文件相对路径（去扩展名），作为文章 slug */
-export const postUrl = (post: Post) => `/posts/${post.id}/`;
+/** glob loader 的 id 即文件相对路径（去扩展名），作为文章 slug
+ *  经 abs() 补 base 前缀：组件 href 与 /api/*.json 共用这份 URL，源头加一次即可 */
+export const postUrl = (post: Post) => abs(`/posts/${post.id}/`);
 
 export interface YearGroup {
   year: string;
@@ -47,7 +49,7 @@ export interface NameMapEntry {
 
 /** 标签/分类 → 文章列表（Panel 云图的 fontSize/opacity 依赖计数） */
 export function nameMap(posts: Post[], key: 'tags' | 'categories'): NameMapEntry[] {
-  const base = key === 'tags' ? '/tags/' : '/categories/';
+  const base = key === 'tags' ? abs('/tags/') : abs('/categories/');
   const map = new Map<string, Post[]>();
   for (const post of posts) {
     for (const name of post.data[key] ?? []) {
@@ -138,7 +140,8 @@ export function metaOf(post: Post): PostMeta {
     updated: (post.data.updated ?? post.data.date).toISOString().slice(0, 10),
     categories: post.data.categories ?? [],
     tags: post.data.tags ?? [],
-    cover: post.data.cover,
+    // cover 来自 frontmatter（public/ 下的绝对路径），同样要补 base 前缀
+    cover: post.data.cover ? abs(post.data.cover) : undefined,
     excerpt: excerptOf(post),
     wordcount: stat.total,
     chars: stat.total,

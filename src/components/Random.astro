@@ -106,11 +106,13 @@ const withEn = site.languages.includes('en-US');
 </style>
 
 <script>
+  import { abs } from '../lib/client/base';
+
   // 清单不另建：/api/recent.json 本来就是全站文章的 url 索引，点了才取
   const btn = document.querySelector<HTMLElement>('.Random .random-btn');
   btn?.addEventListener('click', (e) => {
     e.stopPropagation();
-    fetch('/api/recent.json')
+    fetch(abs('/api/recent.json'))
       .then((r) => r.json())
       .then((data: Array<{ url: string }>) => {
         if (!data || !data.length) return;

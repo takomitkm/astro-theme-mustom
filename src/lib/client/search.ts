@@ -5,6 +5,8 @@
  * 索引由 `pagefind --site dist` 生成（npm run build 已串联）。
  */
 
+import { abs } from './base';
+
 interface SearchItem {
   title: string;
   url: string;
@@ -66,8 +68,8 @@ export function initSearch(): void {
   async function ensureBackend(): Promise<'pagefind' | 'json'> {
     if (backend) return backend;
     try {
-      // 运行时拼接 URL，避免打包器在构建期解析 pagefind 产物
-      const pagefindUrl = new URL('/pagefind/pagefind.js', window.location.origin).href;
+      // 运行时拼接 URL（并补 base 前缀），避免打包器在构建期解析 pagefind 产物
+      const pagefindUrl = new URL(abs('/pagefind/pagefind.js'), window.location.origin).href;
       pagefind = (await import(/* @vite-ignore */ pagefindUrl)) as PagefindModule;
       await pagefind.options?.({});
       backend = 'pagefind';
@@ -80,7 +82,7 @@ export function initSearch(): void {
   async function jsonSearch(query: string): Promise<SearchItem[]> {
     if (!jsonIndex) {
       try {
-        jsonIndex = (await (await fetch('/api/search.json')).json()) as SearchItem[];
+        jsonIndex = (await (await fetch(abs('/api/search.json'))).json()) as SearchItem[];
       } catch {
         jsonIndex = [];
       }

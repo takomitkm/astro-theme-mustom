@@ -9,7 +9,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import { remarkPangu } from './src/markdown/remark-pangu';
 import { rehypeLazyImages } from './src/markdown/rehype-lazy-images';
 import { rehypeHeadingNumbers } from './src/markdown/rehype-heading-numbers';
-import { site } from './src/config';
+import { site, basePath } from './src/config';
 import { relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -28,7 +28,10 @@ function injectScssVars(source: string, id: string): string {
 }
 
 export default defineConfig({
-  site: 'https://takomitkm.github.io',
+  site: site.url,
+  // 仓库名不是 <user>.github.io，Pages 会挂在 /<仓库名>/ 子路径下，
+  // base 必须与 src/config.ts 的 basePath 一致，站内绝对路径靠 abs() 补前缀
+  base: basePath || undefined,
   output: 'static',
   trailingSlash: 'ignore',
   // 悬停预取链接：MPA 下逼近原 SPA 的换页手感
@@ -52,17 +55,17 @@ export default defineConfig({
         short_name: site.title,
         description: site.description,
         lang: 'zh-CN',
-        start_url: '/',
-        scope: '/',
+        start_url: `${basePath}/`,
+        scope: basePath || '/',
         display: 'standalone',
         orientation: 'portrait',
         theme_color: '#000000',
         background_color: '#ffffff',
         icons: [
-          { src: '/images/pwa-192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/images/pwa-512.png', sizes: '512x512', type: 'image/png' },
+          { src: `${basePath}/images/pwa-192.png`, sizes: '192x192', type: 'image/png' },
+          { src: `${basePath}/images/pwa-512.png`, sizes: '512x512', type: 'image/png' },
           {
-            src: '/images/pwa-512-maskable.png',
+            src: `${basePath}/images/pwa-512-maskable.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
@@ -71,8 +74,13 @@ export default defineConfig({
       },
       workbox: {
         // 站点全量预缓存；离线导航兜底回首页
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//, /^\/rss\.xml$/, /^\/sitemap/, /^\/pagefind/],
+        navigateFallback: `${basePath}/index.html`,
+        navigateFallbackDenylist: [
+          new RegExp(`^${basePath}/api/`),
+          new RegExp(`^${basePath}/rss\\.xml$`),
+          new RegExp(`^${basePath}/sitemap`),
+          new RegExp(`^${basePath}/pagefind`),
+        ],
         runtimeCaching: [
           {
             // 一言：网络优先，短超时，旧响应兜底

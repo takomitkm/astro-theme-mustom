@@ -87,6 +87,8 @@ const withEn = site.languages.includes('en-US');
 </style>
 
 <script>
+  import { abs } from '../lib/client/base';
+
   // 逐行移植自 Hexo fork 的 source/asset/js/part/heatmap.js
   // echarts 从 CDN 按需注入，这里只声明用到的最小形状
   const CDN = 'https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js';
@@ -290,7 +292,7 @@ const withEn = site.languages.includes('en-US');
       });
     });
 
-    fetch('/api/recent.json')
+    fetch(abs('/api/recent.json'))
       .then((r) => r.json())
       .then((pdata: Array<{ date: string; chars: number; url: string; title: string }>) => {
         store = group(pdata || []);

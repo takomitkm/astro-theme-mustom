@@ -6,6 +6,7 @@
  */
 
 import { clampExcerpts } from './clamp';
+import { abs } from './base';
 
 interface ItemMeta {
   title: string;
@@ -53,7 +54,7 @@ function buildItem(p: ItemMeta): HTMLElement {
     p.categories.forEach((c, i) => {
       cats.appendChild(document.createTextNode(i === 0 ? ' ' : '\u00a0,'));
       const ca = document.createElement('a');
-      ca.href = '/categories/' + encodeURIComponent(c) + '/';
+      ca.href = abs(`/categories/${encodeURIComponent(c)}/`);
       ca.textContent = c;
       cats.appendChild(ca);
     });
@@ -84,7 +85,7 @@ export function initRecentMore(): void {
 
   btn.addEventListener('click', async () => {
     try {
-      const posts = (await (await fetch('/api/recent.json')).json()) as ItemMeta[];
+      const posts = (await (await fetch(abs('/api/recent.json'))).json()) as ItemMeta[];
       const frag = document.createDocumentFragment();
       for (const p of posts.slice(offset)) frag.appendChild(buildItem(p));
       list.appendChild(frag);

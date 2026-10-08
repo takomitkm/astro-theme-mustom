@@ -19,7 +19,7 @@ import Aside from '../components/Aside.astro';
 import Footer from '../components/Footer.astro';
 import Empty from '../components/Empty.astro';
 import Ext from '../components/Ext.astro';
-import { site, images, hitokoto, busuanzi } from '../config';
+import { site, images, hitokoto, busuanzi, abs } from '../config';
 import { zhCN, enUS } from '../lib/locales';
 import type { MarkdownHeading } from 'astro';
 
@@ -73,7 +73,7 @@ const clientConfig = {
     {site.verification?.google && <meta name="google-site-verification" content={site.verification.google} />}
     {site.verification?.baidu && <meta name="baidu-site-verification" content={site.verification.baidu} />}
     <meta name="theme-color" content="#000000" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="manifest" href={abs('/manifest.webmanifest')} />
     <link rel="icon" type="image/svg+xml" href={images.favicon} />
     <link rel="apple-touch-icon" href={images.appleTouchIcon} />
     <title>{fullTitle}</title>
@@ -198,11 +198,11 @@ const clientConfig = {
 
     <!-- 看板娘：live2d-widget 自托管运行时（模型放 public/live2d/umaru/，版权原因不随模板分发，
          见 https://mx.paul.ren/model/umaru.html 与 SOURCE 说明；设置里可关） -->
-    <link rel="stylesheet" href="/live2d/dist/waifu.css" />
-    <link rel="stylesheet" href="/live2d/site.css" />
-    <script is:inline>window.LIVE2D_BASE = '/live2d/';</script>
+    <link rel="stylesheet" href={abs('/live2d/dist/waifu.css')} />
+    <link rel="stylesheet" href={abs('/live2d/site.css')} />
+    <script is:inline set:html={`window.LIVE2D_BASE = ${JSON.stringify(abs('/live2d/'))};`} />
     <!-- loader.js 用顶层 await，必须以 module 加载 -->
-    <script is:inline type="module" src="/live2d/loader.js"></script>
+    <script is:inline type="module" src={abs('/live2d/loader.js')}></script>
 
     <script>
       import { initGlobal } from '../lib/client/global';
