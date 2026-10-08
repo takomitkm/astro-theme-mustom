@@ -41,8 +41,12 @@ export const site = {
    * 静态资源 CDN 前缀（对应 zmfk fork 的 jsdelivr publicPath）。
    * 填 `https://cdn.jsdelivr.net/gh/<user>/<repo>@<branch>` 启用；留空 = 资源走 GitHub Pages 本体。
    * 仓库里的 deploy.yml 会把 dist 同步推到 `cdn` 分支，jsdelivr 镜像的就是它。
+   *
+   * 演示站留空：_astro/* 全走 CDN 时，jsdelivr 一旦不可达（被墙/超时/新分支尚未同步）
+   * 整站 JS 会加载失败、页面完全不可用。主题演示站图的是稳定，自托管更合适；
+   * 正式站点仍可填上 CDN。
    */
-  cdnPrefix: 'https://cdn.jsdelivr.net/gh/takomitkm/astro-theme-mustom@cdn',
+  cdnPrefix: '',
   /** 界面语言，二选一：['zh-CN'] 或 ['zh-CN', 'en-US']（开启后设置里出现语言切换） */
   languages: ['zh-CN', 'en-US'] as Array<'zh-CN' | 'en-US'>,
   /** 默认皮肤（首次访问生效，之后由访客自己保存的选择接管）：jshine | whiteblack | night */

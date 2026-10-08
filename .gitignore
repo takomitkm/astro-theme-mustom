@@ -1,7 +1,8 @@
-# build output
-dist/
+# build output（只忽略仓库根的构建产物；写成 dist/ 会连带命中 public/live2d/dist/，
+# 那里面是看板娘要用的第三方运行时，漏提交会让线上 waifu.css / live2d.min.js 全 404）
+/dist/
 # generated types
-.astro/
+/.astro/
 # dependencies
 node_modules/
 # logs
@@ -14,10 +15,10 @@ npm-debug.log*
 # jetbrains setting folder
 .idea/
 # local tools (portable node)
-.tools/
+/.tools/
 # reference clones of the original themes
-_refs/
+/_refs/
 
 # 对比分析临时解包目录
 .tmp-mirror/
-diff-legacy/
+/diff-legacy/
