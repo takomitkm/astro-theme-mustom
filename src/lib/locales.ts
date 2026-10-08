@@ -59,7 +59,7 @@ export const zhCN = {
     play: '播放',
     prev: '上一首',
     next: '下一首',
-    nopause: '无法暂停，不想听就点右上角 × 关闭本栏',
+    nopause: '无法暂停，关闭后在左栏打开',
   },
   heatmap: {
     caption: '博客废话产量',
@@ -195,7 +195,7 @@ export const enUS = {
     play: 'Play',
     prev: 'Prev',
     next: 'Next',
-    nopause: "It can't be paused — close this panel with the × if you're done",
+    nopause: "It can't be paused — reopen it from the left panel after closing",
   },
   heatmap: {
     caption: 'WAFFLE OUTPUT',

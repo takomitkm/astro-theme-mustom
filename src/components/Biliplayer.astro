@@ -73,7 +73,9 @@ const withEn = site.languages.includes('en-US');
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0;
+    // 横向内边距对齐侧栏「标签 / 分类」面板标题（.caption 的 0.75rem），
+    // 之前按"不要留空"改成 0 会把文字顶到卡片最左边，与其他卡视觉不齐
+    padding: 0 0.75rem;
     font-size: 0.8em;
     line-height: 2.5;
     background: var(--highlight);
@@ -85,7 +87,6 @@ const withEn = site.languages.includes('en-US');
     }
     > .ops {
       flex: none;
-      padding-right: 0.25rem;
     }
   }
 
@@ -178,9 +179,15 @@ const withEn = site.languages.includes('en-US');
       flex: 1 1 auto;
       min-width: 0;
       padding: 0 $gap * 0.5;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
+      // 曲名普遍较长，窄栏里 nowrap + ellipsis 会把整行压没——允许换行并给足两行高度。
+      // clamp() 兜住超长标题，-webkit-line-clamp 需要 display:-webkit-box。
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      line-height: 1.5;
+      white-space: normal;
+      overflow-wrap: anywhere;
       text-align: center;
     }
     > .prev,
