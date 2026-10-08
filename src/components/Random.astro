@@ -31,9 +31,10 @@ const withEn = site.languages.includes('en-US');
     z-index: 960; // 与 Goingto 同层（原 zIndex(40)）
     position: fixed;
     left: 0;
+    // 按要求贴到屏幕底：容器不留多余高度，按钮整体贴底排列
     bottom: 0;
     width: $headerHeight;
-    height: $headerHeight * 2.5;
+    height: $headerHeight * 1.75;
     user-select: none;
     transition: transform 0.6s;
 
@@ -41,12 +42,14 @@ const withEn = site.languages.includes('en-US');
       transform: translate3d(-#{$headerHeight}, 0, 0);
     }
 
+    // 两个按钮竖排贴底
     button {
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: $headerHeight * 0.5;
       height: $headerHeight * 0.5;
-      line-height: $headerHeight * 0.5;
-      margin: $headerHeight * 0.25 $headerHeight * 0.25 $headerHeight * 0.2;
+      margin: 0 auto;
       text-align: center;
       background: var(--bg);
       border-radius: $borderRadius;
@@ -61,15 +64,25 @@ const withEn = site.languages.includes('en-US');
       }
     }
 
+    .random-btn {
+      margin-top: auto; // 顶到容器底，两钮紧贴下沿
+    }
+
+    .refresh-btn {
+      margin-top: $gap * 0.25;
+      margin-bottom: $gap * 0.25;
+    }
+
     // 强制刷新：转起来表示正在清缓存
     .refresh-btn.busy :global(svg) {
       animation: random-spin 0.9s linear infinite;
     }
 
+    // 说明气泡：各贴自己按钮，且按悬停的那个显示，避免两条同时出现互相遮挡
     .tip {
       position: absolute;
       left: calc(100% + #{$gap * 0.5});
-      bottom: $gap;
+      bottom: 0;
       width: max-content;
       max-width: min(90vw, 22em);
       padding: $gap * 0.5 $gap;
@@ -88,13 +101,24 @@ const withEn = site.languages.includes('en-US');
     }
 
     .tip-refresh {
-      bottom: $headerHeight * 0.95;
+      bottom: 0;
     }
 
-    &:hover .tip,
-    button:focus ~ .tip {
+    // 只在悬停/聚焦对应按钮时显示它自己那条
+    .random-btn:hover ~ .tip:not(.tip-refresh),
+    .random-btn:focus-visible ~ .tip:not(.tip-refresh),
+    .refresh-btn:hover ~ .tip-refresh,
+    .refresh-btn:focus-visible ~ .tip-refresh {
       opacity: 1;
       visibility: visible;
+    }
+
+    // 气泡垂直居中对齐按钮
+    .random-btn ~ .tip:not(.tip-refresh) {
+      bottom: $headerHeight * 0.75;
+    }
+    .refresh-btn ~ .tip-refresh {
+      bottom: $gap * 0.25;
     }
   }
 

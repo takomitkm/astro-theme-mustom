@@ -97,34 +97,27 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
     {
       isPost && (
         <div class="tail">
-          <div class="ending">
-            <T zh={zhCN.article.ending.left} en={withEn ? enUS.article.ending.left : undefined} />
-            <Icon name="dot-circle" fw />
-            <T zh={zhCN.article.ending.right} en={withEn ? enUS.article.ending.right : undefined} />
-          </div>
+          {/* 原来的「以上文章结束 ⊙ 感谢您的阅读」横线整块删了，改用与首页
+              列表一致的 ✟⫘…⫘✟ 分隔符（个数由 divider.ts 按行宽写进 --divider） */}
+          <div class="tail-divider" aria-hidden="true"></div>
 
-          <div class="friend">
-            <div>
-              <T zh={zhCN.article.friend.text} en={withEn ? enUS.article.friend.text : undefined} />
-            </div>
-            {qrcodes.length > 0 && (
-              <>
-                <div class="button">
-                  <T zh={zhCN.article.friend.button} en={withEn ? enUS.article.friend.button : undefined} />
-                </div>
-                <div class="qrcode">
-                  {qrcodes.map((item) => (
+          {qrcodes.length > 0 && (
+            <div class="friend">
+              <div class="button">
+                <T zh={zhCN.article.friend.button} en={withEn ? enUS.article.friend.button : undefined} />
+              </div>
+              <div class="qrcode">
+                {qrcodes.map((item) => (
+                  <div>
+                    <img src={item.path} alt={item.text['zh-CN']} />
                     <div>
-                      <img src={item.path} alt={item.text['zh-CN']} />
-                      <div>
-                        <T zh={item.text['zh-CN']} en={withEn ? item.text['en-US'] : undefined} />
-                      </div>
+                      <T zh={item.text['zh-CN']} en={withEn ? item.text['en-US'] : undefined} />
                     </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div class="license">
             <div class="license-frame">
@@ -341,28 +334,21 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
     }
   }
 
-  .ending {
-    color: var(--article-ending);
-    border-top: 0.5rem dashed;
-    display: grid;
-    grid-template-columns: auto 2rem auto;
-    font-size: 1.25rem;
-    justify-content: center;
-    justify-items: center;
-    line-height: 2.5;
-    padding: 0 $gap;
-    margin: 0 $gap * -1;
+  // 文章结尾分隔符：与首页/归档列表同一套 ✟⫘…⫘✟
+  .tail-divider {
+    color: var(--txt);
+    opacity: 0.45;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: 0.85em;
+    line-height: 2.2;
+    letter-spacing: 0.15em;
+    margin: $gap 0;
+    user-select: none;
 
-    @media (max-width: $smallerWidth) {
-      font-size: 1rem;
-    }
-    @media (max-width: $smallestWidth) {
-      grid-template-columns: auto 1.25rem auto;
-      font-size: 0.8rem;
-    }
-
-    :global(svg) {
-      line-height: 2.5;
+    &::before {
+      content: var(--divider, '✟⫘⫘⫘⫘⫘⫘⫘⫘✟');
     }
   }
 
@@ -459,6 +445,12 @@ const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
     > :global(a) {
       margin: 0.5rem;
       margin-top: 0;
+      color: var(--link-markdown);
+      font-weight: 666;
+
+      &:hover {
+        color: var(--link);
+      }
     }
   }
 

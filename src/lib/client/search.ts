@@ -79,16 +79,21 @@ export function initSearch(): void {
     return backend;
   }
 
-  async function jsonSearch(query: string): Promise<SearchItem[]> {
-    if (!jsonIndex) {
-      try {
-        jsonIndex = (await (await fetch(abs('/api/search.json'))).json()) as SearchItem[];
-      } catch {
-        jsonIndex = [];
-      }
+  /** 取回并缓存整份 JSON 索引（补全词表与"索引规模"提示都要用它） */
+  async function ensureJsonIndex(): Promise<SearchItem[]> {
+    if (jsonIndex) return jsonIndex;
+    try {
+      jsonIndex = (await (await fetch(abs('/api/search.json'))).json()) as SearchItem[];
+    } catch {
+      jsonIndex = [];
     }
+    return jsonIndex;
+  }
+
+  async function jsonSearch(query: string): Promise<SearchItem[]> {
+    const all = await ensureJsonIndex();
     const out: SearchItem[] = [];
-    for (const item of jsonIndex) {
+    for (const item of all) {
       if (out.length >= RESULT_LIMIT) break;
       if (matchQuery(query, item)) out.push(item);
     }
@@ -165,24 +170,112 @@ export function initSearch(): void {
     }
   }
 
-  // 初始提示（对应原版 on() 的 initial 行）
-  list.appendChild(message(messages.initial));
 
+/** 索引规模：直接看 JSON 索引长度（这就是"有多少内容要搜索"） */
+  let docTotal = 0;
+  const totalDocs = async (): Promise<number> => {
+    if (!docTotal) {
+      const all = await ensureJsonIndex();
+      docTotal = all.length;
+    }
+    return docTotal;
+  };
+  // 初始提示（对应原版 on() 的 initial 行）：顺带报一下索引规模
+  const initialLine = async () => {
+    const msg = message(messages.initial);
+    list!.appendChild(msg);
+    const total = await totalDocs();
+    if (total) {
+      msg.innerHTML = `${messages.initial}<br><small>索引共 ${total} 篇文档</small>`;
+    }
+  };
+  void initialLine();
+
+  /* ---------- 预测输入（像搜索引擎那样）----------
+     每 500ms 用当前词去索引里捞一遍候选词，显示成可点的补全行；
+     点一下直接填进输入框。 */
+  const wordPool = new Map<string, string>();
+  const loadPool = async () => {
+    if (wordPool.size) return;
+    try {
+      const items = await ensureJsonIndex();
+      for (const it of items) {
+        const words = [it.title, ...(it.tags ?? []), ...(it.categories ?? [])]
+          .join(' ')
+          .split(/[\s/、,，。·_-]+/)
+          .map((w) => w.trim())
+          .filter((w) => w.length >= 2);
+        for (const w of words) if (!wordPool.has(w)) wordPool.set(w.toLowerCase(), w);
+      }
+    } catch {
+      /* 没有后备索引就不做补全 */
+    }
+  };
+
+  // 预测词排在结果上方（像搜索引擎的下拉）。每次渲染都先清掉旧的再插到最前面，
+  // 这样两秒一次的自动搜索把结果区清空后，补全行也不会跟着消失。
+  const renderPredictions = () => {
+    list!.querySelectorAll('.predictions').forEach((e) => e.remove());
+    const q = input.value.trim().toLowerCase();
+    if (!q || !wordPool.size) return;
+    const hits = [...wordPool.values()]
+      .filter((w) => {
+        const k = w.toLowerCase();
+        return k.includes(q) && k !== q;
+      })
+      .slice(0, 8);
+    if (!hits.length) return;
+    const box = document.createElement('div');
+    box.className = 'predictions';
+    for (const w of hits) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'prediction';
+      b.textContent = w;
+      b.addEventListener('click', () => {
+        input.value = w;
+        input.focus();
+        void search(w);
+      });
+      box.appendChild(b);
+    }
+    list!.prepend(box);
+  };
+
+  let predictTimer = 0;
   input.addEventListener('input', () => {
     if (!input.value.trim()) {
       seq++;
       list!.innerHTML = '';
-      list!.appendChild(message(messages.initial));
+      void initialLine();
+      return;
     }
+    // 每半秒刷新一次预测
+    window.clearTimeout(predictTimer);
+    predictTimer = window.setTimeout(() => {
+      void loadPool().then(renderPredictions);
+    }, 500);
   });
 
-  // 回车或按钮触发搜索（对应原版 dialog 的交互）
+  // 回车触发搜索
   const runSearch = () => {
     input.blur();
-    search(input.value);
+    void search(input.value).then(() => renderPredictions());
   };
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') runSearch();
   });
-  root.querySelector<HTMLButtonElement>('.search-btn')?.addEventListener('click', runSearch);
+
+  // 每 2 秒自动出一次当前输入的结果（像搜索引擎的 instant search）
+  let autoTimer = 0;
+  input.addEventListener('input', () => {
+    window.clearInterval(autoTimer);
+    const q = input.value.trim();
+    if (!q) return;
+    autoTimer = window.setInterval(() => {
+      if (input.value.trim() !== q) return;
+      void search(q).then(() => renderPredictions());
+    }, 2000);
+  });
+  input.addEventListener('blur', () => window.clearInterval(autoTimer));
 }

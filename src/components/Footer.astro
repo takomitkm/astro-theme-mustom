@@ -7,7 +7,6 @@ import { zhCN, enUS } from '../lib/locales';
 import { getPosts, totalWords } from '../lib/posts';
 
 const posts = await getPosts();
-const words = totalWords(posts);
 const buildYear = new Date().getFullYear();
 const withEn = site.languages.includes('en-US');
 ---
@@ -58,14 +57,21 @@ const withEn = site.languages.includes('en-US');
       <span id="busuanzi_value_site_uv">∞</span>
       <em class="tip"><T zh={zhCN.footer.tipUv} en={withEn ? enUS.footer.tipUv : undefined} /></em>
     </span>
-    <span class="count-item wd" tabindex="0" title={zhCN.footer.wd}>
-      <Icon name="file-word" fw /> {words}
-      <em class="tip"><T zh={zhCN.footer.tipWd} en={withEn ? enUS.footer.tipWd : undefined} /></em>
-    </span>
   </div>
   <div class="license">
     <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
   </div>
+</div>
+
+{/* 计数器图片（右对齐）：取代原来页脚里的 pv/uv/字数 三个数字中可被它替代的部分，
+    现已把字数项整个删掉，只留 pv/uv。 */}
+<div class="Footer-counter">
+  <img
+    src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
+    alt="site counter"
+    loading="lazy"
+    referrerpolicy="no-referrer"
+  />
 </div>
 
 {/* 不蒜子官方脚本（替换自写 JSONP）；脚本不可达时数值保持 ∞ */}
@@ -77,11 +83,13 @@ const withEn = site.languages.includes('en-US');
 
   .Footer {
     user-select: none;
-    text-align: center;
+    // 原有元素整体靠左，右侧留给计数器图片（.Footer-counter）
+    text-align: left;
     background: var(--bg);
     padding: 0.75rem calc(1rem + #{$borderRadius}) 0.5rem;
     border-radius: $borderRadius $borderRadius 0 0;
     position: relative;
+    margin-right: 12rem; // 给右下的计数器图让位
     overflow: hidden;
     font-size: 0.9rem;
 
@@ -106,7 +114,7 @@ const withEn = site.languages.includes('en-US');
     padding-top: 0.25rem;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     gap: $gap * 0.5;
 
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
@@ -181,6 +189,31 @@ const withEn = site.languages.includes('en-US');
       &::before {
         display: none;
       }
+    }
+  }
+</style>
+
+<style lang="scss">
+  // 计数器图片：固定在页脚右下角，页脚原有内容整体左移给它让位
+  .Footer-counter {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    z-index: 961; // 与 Random/Goingto 同层，浮在页脚之上
+    padding: 0.5rem;
+    display: flex;
+    align-items: flex-end;
+    pointer-events: none;
+
+    img {
+      display: block;
+      height: auto;
+      max-height: 90px;
+      border-radius: $borderRadius;
+    }
+
+    @media (max-width: $smallestWidth) {
+      display: none;
     }
   }
 </style>

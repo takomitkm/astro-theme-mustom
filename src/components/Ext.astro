@@ -45,9 +45,6 @@ import { portals } from '../config';
         autocomplete="off"
         spellcheck="false"
       />
-      <button type="button" class="search-btn" aria-label="Search">
-        <Icon name="search" fw />
-      </button>
       <ul class="suggestions"></ul>
     </div>
   </div>
@@ -148,23 +145,24 @@ import { portals } from '../config';
 
   /* ---------- 搜索框（parts/Search.vue）；建议列表由 TS 动态创建，需 :global 才能命中 ---------- */
   .Search {
-    display: inline-block;
+    display: block;
     position: relative;
     width: 100%;
 
     input {
       cursor: text;
       width: 100%;
-      height: 2rem;
+      // 输入框加高到与顶栏等高
+      height: $headerHeight;
       color: var(--txt);
-      display: inline-block;
+      display: block;
       border: 1px solid var(--highlight);
       box-shadow: 0 0 1px var(--txt);
       border-radius: $borderRadius;
       font-size: 0.9rem;
-      line-height: 2rem;
-      // 左侧留出放大镜位，右侧留出搜索按钮位
-      padding: 0 2.5rem 0 2rem;
+      line-height: $headerHeight;
+      // 只留左侧放大镜位（右侧搜索按钮已删除）
+      padding: 0 1rem 0 2.5rem;
       outline: none;
       transition: all 0.2s ease;
       background: var(--bg);
@@ -175,40 +173,18 @@ import { portals } from '../config';
       }
     }
 
-    // 放大镜与按钮都用 flex 垂直居中（原来靠 top 偏移，两边各偏 5~7px）。
-    // 高度写死 2rem 与 input 等高：不能用 top:0;bottom:0，那会撑满含结果列表的 .Search
+    // 放大镜：与等高的 input 垂直居中（原来写死 2rem 会偏上）
     :global(.input-icon) {
       position: absolute;
-      left: 0.6rem;
+      left: 0.9rem;
       top: 0;
-      height: 2rem;
+      height: $headerHeight;
       display: flex;
       align-items: center;
       line-height: 1;
       pointer-events: none;
       color: var(--txt);
       opacity: 0.6;
-    }
-
-    :global(.search-btn) {
-      position: absolute;
-      right: 0.35rem;
-      top: 0;
-      height: 2rem;
-      display: flex;
-      align-items: center;
-      border: none;
-      background: none;
-      padding: 0;
-      line-height: 1;
-      font-size: 1rem;
-      color: var(--txt);
-      opacity: 0.6;
-      cursor: pointer;
-
-      &:hover {
-        opacity: 1;
-      }
     }
 
     // 结果列表改为常规流：随内容撑开、随 .Ext 滚动，不再绝对定位漂移
@@ -224,6 +200,13 @@ import { portals } from '../config';
       padding: 0.6em 0.6em;
       text-align: center;
       opacity: 0.7;
+
+      small {
+        display: block;
+        margin-top: 0.3em;
+        font-size: 0.85em;
+        opacity: 0.8;
+      }
     }
 
     :global(.count) {
@@ -232,6 +215,31 @@ import { portals } from '../config';
       text-align: right;
       font-size: 0.88em;
       opacity: 0.7;
+    }
+
+    // 预测输入：可点的补全词
+    :global(.predictions) {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 0.75rem;
+    }
+
+    :global(.prediction) {
+      padding: 0.2rem 0.6rem;
+      font: inherit;
+      font-size: 0.85em;
+      line-height: 1.6;
+      color: var(--txt);
+      background: var(--highlight);
+      border: none;
+      border-radius: $borderRadius;
+      cursor: pointer;
+
+      &:hover {
+        color: var(--bg);
+        background: var(--readme-more-bg);
+      }
     }
 
     :global(.result-item) {

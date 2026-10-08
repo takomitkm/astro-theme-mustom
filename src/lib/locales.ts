@@ -16,7 +16,7 @@ export const zhCN = {
   footer: {
     copyright: '© [:start_year:] - [:build_year:] [:author:]',
     powered: '由 [:generator:] 强力驱动',
-    themed: '主题 [:theme:] By [:author:]',
+    themed: '主题 [:theme:] by [:author:]',
     pv: '本站总点击量',
     uv: '本站总访客量',
     wd: '本站文章总字数',
@@ -152,7 +152,7 @@ export const enUS = {
   footer: {
     copyright: '© [:start_year:] - [:build_year:] [:author:]',
     powered: 'Powered by [:generator:]',
-    themed: 'Theme [:theme:] By [:author:]',
+    themed: 'Theme [:theme:] by [:author:]',
     pv: 'Site total page views',
     uv: 'Site total visitors',
     wd: 'Site total word count',

@@ -288,6 +288,56 @@ html.close-aside .Aside {
   }
 }
 
+/* 抽屉内卡片标题（主菜单 / 皮肤 / 设置）反色：底色与字色对调 */
+.Drawer .card > .caption {
+  background: var(--txt);
+  color: var(--bg);
+
+  :global(a) {
+    color: inherit;
+  }
+}
+
+/* 所有 hover/focus 说明气泡统一置顶：原先各处 z-index 只有 940，
+   会被同为 940+ 的浮层（Ext 969 / Random 960 / Header 970）压住。
+   组件里的 scoped 规则特异性同为 (0,2,0) 且更靠后，必须 !important 才压得住。 */
+.Footer .tip,
+.Brand .tip,
+.Heatmap .hm-tip,
+.Random .tip,
+.Biliplayer .tip {
+  z-index: 1200 !important;
+}
+
+/* ---------- 自定义鼠标指针 ----------
+   加载中 = 等待(idc_wait) / 悬停热力图 = 十字(idc_cross) / 拖动看板娘 = 四向(sizeall) */
+html.is-loading,
+html.is-loading body {
+  cursor: url('/images/cursor/idc_wait.png') 16 16, wait !important;
+  * {
+    cursor: url('/images/cursor/idc_wait.png') 16 16, wait !important;
+  }
+}
+
+.Heatmap {
+  cursor: url('/images/cursor/idc_cross.png') 16 16, crosshair;
+  * {
+    cursor: inherit;
+  }
+}
+
+/* 看板娘可拖动，按下拖动时用四向移动指针 */
+#waifu,
+#live2d,
+#waifu-canvas {
+  cursor: url('/images/cursor/idc_sizeall.png') 16 16, move;
+}
+
+#waifu.dragging,
+#live2d.dragging {
+  cursor: url('/images/cursor/idc_sizeall.png') 16 16, grabbing;
+}
+
 .minimize {
   position: absolute;
   top: 0;

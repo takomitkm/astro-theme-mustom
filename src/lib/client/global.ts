@@ -5,6 +5,7 @@
  *   标签页标题彩蛋（visibilitychange）。
  */
 import { initLayout } from './layout';
+import { getSave, patchSave } from './storage';
 import {
   setExt,
   setSkin,
@@ -24,23 +25,49 @@ import mediumZoom from 'medium-zoom';
 import { clampExcerpts } from './clamp';
 import { initDividers } from './divider';
 
-/** 卡片最小化（逐行对应 mustom$ToggleMinimize） */
+/** 卡片最小化（逐行对应 mustom$ToggleMinimize）
+ *  带 data-mini-id 的卡片折叠状态会写进 localStorage，任意页面进来都保持原样。 */
 function toggleMinimize(card: HTMLElement | null): void {
   if (!card) return;
-  if (card.classList.contains('mini')) {
-    card.classList.remove('mini');
-    window.setTimeout(() => {
-      card.style.height = 'auto';
-    }, 200);
-  } else {
+  // 折叠类是在 setTimeout 里加的，此刻还没生效，所以先把目标状态算出来再存档
+  const willBeMini = !card.classList.contains('mini');
+  if (willBeMini) {
     card.style.height = card.offsetHeight + 'px';
     window.setTimeout(() => {
       card.classList.add('mini');
     }, 0);
+  } else {
+    card.classList.remove('mini');
+    window.setTimeout(() => {
+      card.style.height = 'auto';
+    }, 200);
   }
+  persistMini(card, willBeMini);
   window.setTimeout(() => {
     window.dispatchEvent(new CustomEvent('mustom:resize'));
   }, 200);
+}
+
+/** 把某张卡的折叠状态记进存档（无 data-mini-id 的卡片不记） */
+function persistMini(card: HTMLElement, isMini: boolean): void {
+  const id = card.dataset.miniId;
+  if (!id) return;
+  const set = new Set(getSave().mini ?? []);
+  isMini ? set.add(id) : set.delete(id);
+  patchSave({ mini: [...set] });
+}
+
+/** 首帧后把存档里的折叠状态还原到当前页对应的卡片 */
+export function restoreMini(): void {
+  const ids = getSave().mini ?? [];
+  if (!ids.length) return;
+  document.querySelectorAll<HTMLElement>('.card[data-mini-id]').forEach((card) => {
+    if (ids.includes(card.dataset.miniId ?? '')) {
+      // 直接挂 .mini，不走动画（避免页面刚进来就抖一下）
+      card.classList.add('mini');
+    }
+  });
+  window.dispatchEvent(new CustomEvent('mustom:resize'));
 }
 
 /** 好友二维码展开/收起（Article.vue friend()） */
@@ -107,6 +134,7 @@ export function initGlobal(): void {
   clampExcerpts();
   syncSettingsUI();
   syncSkinUI();
+  restoreMini();
 
   // 左右栏折叠按钮初始态（boot 脚本已按存档恢复 <html> 类）
   for (const btn of document.querySelectorAll<HTMLElement>('[data-collapse]')) {
@@ -133,9 +161,9 @@ export function initGlobal(): void {
     const path = (e.composedPath?.() ?? []) as EventTarget[];
     const minimize = target.closest?.('.minimize');
     if (minimize && !minimize.matches('.Ext *')) {
-      // path[1] 是 .card（对应原版 event.path[1]）
-      const card =
-        (path[1] as HTMLElement | undefined) ?? (minimize.closest('.card') as HTMLElement | null);
+      // 用 closest('.card') 而不是 path[1]：热力图的折叠按钮嵌在标题行里，
+      // path[1] 拿到的是 .hm-caption，会把折叠挂到标题上而不是整张卡
+      const card = minimize.closest<HTMLElement>('.card') ?? (path[1] as HTMLElement | null);
       toggleMinimize(card);
       return;
     }

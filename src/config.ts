@@ -112,12 +112,6 @@ export const portals: Array<{
   install?: boolean;
 }> = [
   {
-    name: 'GitHub',
-    desc: '源码与 issue',
-    link: 'https://github.com/your-name',
-    icon: abs('/images/portals/github.svg'),
-  },
-  {
     name: 'RSS',
     desc: '订阅本站更新',
     link: abs('/rss.xml'),
@@ -191,9 +185,9 @@ export const license = {
 /** 本主题署名（页脚） */
 export const theme = {
   name: 'Mustom',
-  url: 'https://github.com/jinyaoMa/vuepress-theme-mustom',
-  author: 'jinyaoMa',
-  authorUrl: 'https://github.com/jinyaoMa',
+  url: 'https://github.com/takomitkm/astro-theme-mustom',
+  author: 'takomitkm',
+  authorUrl: 'https://github.com/takomitkm',
 };
 
 /** 图片资源（可全部换成自己的）；wallpaper 为整站壁纸（html.wallpaper 时半透明纱下可见）

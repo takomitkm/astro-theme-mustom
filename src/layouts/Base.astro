@@ -58,7 +58,10 @@ const clientConfig = {
 ---
 
 <!DOCTYPE html>
-<html lang="zh-CN" class:list={[`skin-${site.defaultSkin}`, { wallpaper: !!images.wallpaper }]}>
+<html
+    lang="zh-CN"
+    class:list={[`skin-${site.defaultSkin}`, { wallpaper: !!images.wallpaper, 'is-loading': true }]}
+  >
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -209,6 +212,53 @@ const clientConfig = {
     <script>
       import { initGlobal } from '../lib/client/global';
       initGlobal();
+
+      // 加载中光标（idc_wait）：首帧就挂上 is-loading，load 后摘掉。
+      // 内联在 body 末尾，理论上已接近完成，但仍留 1.2s 兜底，
+      // 免得某个资源把 load 拖住时光标一直卡在等待态。
+      const clearLoading = () => document.documentElement.classList.remove('is-loading');
+      if (document.readyState === 'complete') clearLoading();
+      else window.addEventListener('load', clearLoading, { once: true });
+      window.setTimeout(clearLoading, 1200);
+
+      // 看板娘拖动中加 .dragging，光标切到四向移动指针
+      const waifu = document.querySelector('#waifu') || document.querySelector('#live2d');
+      if (waifu) {
+        waifu.addEventListener('pointerdown', () => waifu.classList.add('dragging'));
+        window.addEventListener('pointerup', () => waifu.classList.remove('dragging'));
+      }
+
+      /* 看板娘画布高度跟随热力图卡片。
+         注意：live2d 的 loader.js 是顶层 await 的 module，这段脚本跑的时候
+         #live2d 还没建出来，所以先挂 MutationObserver 等它出现，再开始同步。 */
+      const heat = document.querySelector<HTMLElement>('.Heatmap.card');
+      if (heat) {
+        const sync = () => {
+          const canvas = document.querySelector<HTMLElement>('#live2d');
+          if (!canvas) return;
+          // 用卡片实际高度，减去标题行，剩下的正好是图表区
+          const h = Math.max(120, Math.round(heat.getBoundingClientRect().height) - 40);
+          canvas.style.height = h + 'px';
+          // live2d 运行时按宽高比绘制，等比给宽度免得拉伸
+          canvas.style.width = h + 'px';
+        };
+        if (typeof window.ResizeObserver === 'function') {
+          new window.ResizeObserver(sync).observe(heat);
+        }
+        window.addEventListener('resize', sync);
+        // 热力图折叠状态变化后也要跟上
+        document.addEventListener('mustom:resize', () => window.setTimeout(sync, 250));
+
+        if (document.querySelector('#live2d')) sync();
+        else {
+          const mo = new window.MutationObserver(() => {
+            if (!document.querySelector('#live2d')) return;
+            mo.disconnect();
+            sync();
+          });
+          mo.observe(document.body, { childList: true, subtree: true });
+        }
+      }
     </script>
     <script>
       // PWA：autoUpdate，Service Worker 就绪即接管（Astro 静态页不走 Vite HTML 管线，需手动注册）

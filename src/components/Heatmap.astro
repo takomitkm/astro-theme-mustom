@@ -3,17 +3,22 @@
 // echarts 日历热力图，一格 = 一天，颜色 = 当天全站发文字数（千字）；
 // echarts 走 jsdelivr 按需注入，数据从 /api/recent.json 的 chars 聚合
 import T from './T.astro';
+import Icon from './Icon.astro';
 import { zhCN, enUS } from '../lib/locales';
 import { site } from '../config';
 
 const withEn = site.languages.includes('en-US');
 ---
 
-<div class="Heatmap card">
+<div class="Heatmap card" data-mini-id="heatmap">
   <div class="caption hm-caption" tabindex="0">
     <span class="hm-caption-text">
       <T zh={zhCN.heatmap.caption} en={withEn ? enUS.heatmap.caption : undefined} />
     </span>
+    <div class="minimize" role="button" tabindex="-1" aria-label="Toggle heatmap">
+      <Icon name="minus" class="minus" />
+      <Icon name="plus" class="plus" />
+    </div>
     <em class="hm-tip">
       <T zh={zhCN.heatmap.source} en={withEn ? enUS.heatmap.source : undefined} html />
     </em>

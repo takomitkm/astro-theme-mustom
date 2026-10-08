@@ -176,20 +176,41 @@ const withEn = site.languages.includes('en-US');
     background: var(--highlight);
 
     > .now {
+      // 左右多让一点，别被上一首/下一首两个按钮挤没
       flex: 1 1 auto;
       min-width: 0;
-      padding: 0 $gap * 0.5;
-      // 曲名普遍较长，窄栏里 nowrap + ellipsis 会把整行压没——允许换行并给足两行高度。
-      // clamp() 兜住超长标题，-webkit-line-clamp 需要 display:-webkit-box。
-      display: -webkit-box;
-      -webkit-box-orient: vertical;
-      -webkit-line-clamp: 2;
-      line-clamp: 2;
+      padding: 0 $gap * 0.75;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.1rem;
       line-height: 1.5;
+      text-align: center;
       white-space: normal;
       overflow-wrap: anywhere;
-      text-align: center;
     }
+
+    // 两行内容：bv/av 号 + 歌单位置，各自一行
+    .now-code,
+    .now-pos {
+      display: block;
+      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .now-code {
+      font-weight: 600;
+      color: var(--link-markdown);
+    }
+
+    .now-pos {
+      font-size: 0.9em;
+      opacity: 0.7;
+    }
+
     > .prev,
     > .next {
       flex: none;
@@ -219,7 +240,7 @@ const withEn = site.languages.includes('en-US');
 
   const el = document.querySelector<HTMLElement>('.bili-player');
   if (el) {
-    let list: Array<{ bvid: string; title: string; duration?: number; page?: number }> = [];
+    let list: Array<{ bvid: string; aid?: number; title: string; duration?: number; page?: number }> = [];
     let index = 0;
     let countdown = Number(el.dataset.countdown) || 3;
     let ticker = 0;
@@ -279,7 +300,17 @@ const withEn = site.languages.includes('en-US');
     const render = () => {
       const item = current();
       if (!item) return;
-      q<HTMLElement>('.now')!.innerText = item.title;
+      // 两行：第一行 bvid/avid，第二行是这首歌在歌单里的第几个
+      const slot = q<HTMLElement>('.now')!;
+      slot.innerHTML = '';
+      const code = document.createElement('span');
+      code.className = 'now-code';
+      code.textContent = item.bvid || ('av' + (item.aid ?? '')) || '—';
+      const pos = document.createElement('span');
+      pos.className = 'now-pos';
+      const at = index + 1;
+      pos.textContent = `歌单第 ${at} / ${list.length} 首`;
+      slot.append(code, pos);
     };
 
     // 播放器不会往父窗口发任何消息，外层既拿不到 ended 也拿不到进度。

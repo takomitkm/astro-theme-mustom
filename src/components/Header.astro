@@ -1,16 +1,9 @@
 ---
 // 顶栏 —— 对应 Header.vue + Hexo 版 xdrawer/xaside：
-// 左侧抽屉总开关、门户、站名、搜索、右栏总开关（每侧一个折叠逻辑）
+// 左侧抽屉总开关、门户、搜索、右栏总开关（每侧一个折叠逻辑）
+// 站名文字已按要求移除，中列只留一个空占位（config 里的 header.sitename 暂留备用）
 import Icon from './Icon.astro';
-import T from './T.astro';
-import { header, site, abs } from '../config';
-import { zhCN, enUS } from '../lib/locales';
-
-const sitename = {
-  'zh-CN': header.sitename['zh-CN'],
-  'en-US': header.sitename['en-US'] ?? header.sitename['zh-CN'],
-};
-const withEn = site.languages.includes('en-US');
+import { header } from '../config';
 ---
 
 <div class="Header">
@@ -24,11 +17,8 @@ const withEn = site.languages.includes('en-US');
       </button>
     )
   }
-  <div class="sitename">
-    <a href={abs('/')} class="sitename-link">
-      <T zh={sitename['zh-CN']} en={withEn ? sitename['en-US'] : undefined} html />
-    </a>
-  </div>
+  {/* 站名文字按要求删掉，留一个纯占位格维持 grid 列宽与左右按钮对称 */}
+  <div class="sitename"></div>
   {
     header.search && (
       <button type="button" class="ext" data-ext="search" aria-label="Search">
@@ -157,26 +147,13 @@ const withEn = site.languages.includes('en-US');
       background: var(--underline);
     }
 
-    // 抽屉开关激活态：右下角小圆点（Hexo 版 xdrawer 的指示）
-    &.xdrawer {
-      position: relative;
+    // 抽屉开关激活态：图标旋转 90°（原为右下角小圆点，按要求去掉）
+    &.xdrawer :global(svg) {
+      transition: transform 0.6s;
+    }
 
-      &::after {
-        content: '';
-        position: absolute;
-        top: calc(#{$headerHeight} / 2 + 0.375rem);
-        right: calc(#{$headerHeight} / 2 - 0.75rem);
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 50%;
-        background: var(--txt);
-        transition: opacity 0.6s;
-        opacity: 0;
-      }
-
-      &.active::after {
-        opacity: 1;
-      }
+    &.xdrawer.active :global(svg) {
+      transform: rotate(90deg);
     }
 
     // 右栏开关激活态：箭头旋转 180°（Hexo 版 xaside 的指示）

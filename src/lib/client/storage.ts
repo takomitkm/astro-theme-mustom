@@ -12,6 +12,8 @@ export interface SaveData {
   noLive2d?: boolean;
   hidePlayer?: boolean;
   autoplay?: boolean;
+  /** 被折叠的卡片 data-mini-id 列表（跨页保持折叠/展开） */
+  mini?: string[];
 }
 
 export const KEY = () => window.btoa(window.location.host);

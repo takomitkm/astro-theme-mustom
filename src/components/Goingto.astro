@@ -1,10 +1,14 @@
 ---
-// 回到顶部/底部 —— 对应 Goingto.vue
+// 回到顶部/底部 + 中键（自动翻页）——对应 Goingto.vue
 import Icon from './Icon.astro';
+import { abs } from '../config';
 ---
 
 <div class="Goingto">
   <div class="top"><Icon name="arrow-up" /></div>
+  <div class="middle" title="中键：自动翻页" aria-label="Auto paginate">
+    <img src={abs('/images/cursor/ocr_rdrvert.png')} alt="" draggable="false" />
+  </div>
   <div class="bottom"><Icon name="arrow-down" /></div>
 </div>
 
@@ -16,7 +20,8 @@ import Icon from './Icon.astro';
     right: 0;
     bottom: 0;
     width: $headerHeight;
-    height: $headerHeight * 1.75;
+    // 三个按钮竖排贴底
+    height: $headerHeight * 2.5;
     user-select: none;
     transition: transform 0.6s;
 
@@ -26,10 +31,14 @@ import Icon from './Icon.astro';
   }
 
   .top,
+  .middle,
   .bottom {
     width: $headerHeight * 0.5;
-    line-height: $headerHeight * 0.5;
-    margin: $headerHeight * 0.25;
+    height: $headerHeight * 0.5;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     background: var(--bg);
     border-radius: $borderRadius;
@@ -40,4 +49,51 @@ import Icon from './Icon.astro';
       color: var(--underline);
     }
   }
+
+  .top {
+    margin-top: auto;
+  }
+
+  .bottom {
+    margin-bottom: $gap * 0.25;
+  }
+
+  .middle {
+    margin: $gap * 0.25 auto;
+
+    img {
+      width: 1rem;
+      height: 1rem;
+      image-rendering: pixelated;
+      pointer-events: none;
+    }
+  }
+
+  // 素材是黑色像素图，深色皮肤下反相才看得见
+  :global(html.skin-night) .middle img {
+    filter: invert(1);
+  }
 </style>
+
+<script>
+  /* 中间那个按钮 = 鼠标中键的行为：自动向下翻页到底，滚到头就回顶。
+     中键在浏览器里会触发自动滚动（autoscroll），这里 preventDefault 接管，
+     只在 .Goingto .middle 上按下才拦截，避免影响页面其它区域的中键行为。 */
+  const box = document.querySelector<HTMLElement>('.Goingto .middle');
+  box?.addEventListener('mousedown', (e) => {
+    if (e.button !== 1) return; // 只认中键
+    e.preventDefault();
+
+    const doc = document.scrollingElement || document.documentElement;
+    const atBottom = doc.scrollTop + window.innerHeight >= doc.scrollHeight - 2;
+    // 与 actions.ts 的滚动一致：到底则回顶，否则整屏往下翻
+    window.scrollTo({
+      top: atBottom ? 0 : doc.scrollTop + window.innerHeight * 0.9,
+      behavior: 'smooth',
+    });
+  });
+  // 部分环境里 mousedown 的 preventDefault 拦不住 autoscroll，再兜一层
+  box?.addEventListener('auxclick', (e) => {
+    if (e.button === 1) e.preventDefault();
+  });
+</script>

@@ -4,14 +4,22 @@
 }
 
 @media (min-width: 1024px) {
+  /* 看板娘挪进右栏，落在 B 站播放器（标题 / 画面 / 上一首·下一首）下方，
+     高度由 Heatmap 卡片同步（见 Base.astro 的 syncWaifuSize） */
   #waifu {
     left: auto;
     right: 76px;
+    bottom: 0;
   }
   #waifu-tool {
     right: auto;
     left: -10px;
     top: 60px;
+  }
+  /* 画布尺寸交给 JS 按热力图高度设置，这里给个兜底默认值 */
+  #live2d {
+    width: 300px;
+    height: 300px;
   }
 }
 

@@ -112,13 +112,12 @@ const signature = {
     position: relative;
     grid-area: inner;
     padding: 1.5rem 1rem 1rem;
-    border-top: 0.25rem dashed var(--article-ending);
+    // 头像与作者名之间的虚线分隔按要求去掉
     text-align: center;
 
     @media (max-width: $smallerWidth) and (min-width: $smallestWidth) {
       padding: 1rem 1rem 1rem 1.5rem;
-      border-top: none;
-      border-left: 0.25rem dashed var(--article-ending);
+      border-left: none;
       text-align: left;
       > div {
         margin: 0 0 0 -1rem;
