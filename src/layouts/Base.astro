@@ -69,7 +69,9 @@ const clientConfig = {
     <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={desc} />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content={site.url.replace(/\/$/, '') + Astro.url.pathname} />
+    {/* site.url 已含 base，而 Astro.url.pathname 也已含 base——直接拼会得到
+        ".../astro-theme-mustom/astro-theme-mustom"。用 URL 解析让绝对路径覆盖掉路径段。 */}
+    <meta property="og:url" content={new URL(Astro.url.pathname, site.url).href} />
     {site.verification?.google && <meta name="google-site-verification" content={site.verification.google} />}
     {site.verification?.baidu && <meta name="baidu-site-verification" content={site.verification.baidu} />}
     <meta name="theme-color" content="#000000" />
