@@ -1,0 +1,310 @@
+---
+// 产量热力图 —— 移植自 Hexo fork 的 heatmap part
+// echarts 日历热力图，一格 = 一天，颜色 = 当天全站发文字数（千字）；
+// echarts 走 jsdelivr 按需注入，数据从 /api/recent.json 的 chars 聚合
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Heatmap card">
+  <div class="caption hm-caption" tabindex="0">
+    <span class="hm-caption-text">
+      <T zh={zhCN.heatmap.caption} en={withEn ? enUS.heatmap.caption : undefined} />
+    </span>
+    <em class="hm-tip">
+      <T zh={zhCN.heatmap.source} en={withEn ? enUS.heatmap.source : undefined} html />
+    </em>
+  </div>
+  <div class="hm-chart"></div>
+  <span class="hm-unit">
+    <T zh={zhCN.heatmap.unit} en={withEn ? enUS.heatmap.unit : undefined} />
+  </span>
+</div>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .Heatmap {
+    user-select: none;
+    width: 100%;
+    border: 1px solid var(--highlight);
+    background: var(--bg);
+    animation: appear 0.6s ease;
+  }
+
+  .hm-caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    padding: 0 $gap;
+    font-size: 0.8em;
+    line-height: 2.5;
+    background: var(--highlight);
+    cursor: help;
+
+    &:hover .hm-tip,
+    &:focus .hm-tip,
+    &.on .hm-tip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  // 出处注释：桌面 hover/focus，触屏 click 切 .on（与页脚气泡同一套做法），
+  // 面板贴在正文栏顶部，气泡朝下开
+  .hm-tip {
+    position: absolute;
+    left: $gap;
+    right: $gap;
+    top: calc(100% + #{$gap * 0.5});
+    padding: $gap * 0.5 $gap;
+    font-size: 0.75em;
+    line-height: 1.5;
+    font-style: normal;
+    text-align: left;
+    color: var(--header);
+    background: var(--highlight);
+    border: 1px solid var(--article-ending);
+    border-radius: $gap * 0.5;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    z-index: 940;
+  }
+
+  .hm-chart {
+    width: 100%;
+    height: 196px;
+  }
+
+  .hm-unit {
+    display: none;
+  }
+</style>
+
+<script>
+  // 逐行移植自 Hexo fork 的 source/asset/js/part/heatmap.js
+  // echarts 从 CDN 按需注入，这里只声明用到的最小形状
+  const CDN = 'https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js';
+
+  interface DayEntry {
+    chars: number;
+    posts: Array<{ url: string; title: string; chars: number }>;
+  }
+
+  interface EChartsLike {
+    resize(): void;
+    setOption(option: unknown, notMerge?: boolean): void;
+    off(event: string): void;
+    on(event: string, cb: (params: { componentType: string; data: [string, number] }) => void): void;
+  }
+
+  /** echarts 未公开的类型，只取画完之后的格子实际宽度 _sw（宽度/高度） */
+  interface CalendarModelLike {
+    getComponent(name: string): { coordinateSystem?: { _sw?: number } } | undefined;
+  }
+
+  interface WindowWithEcharts {
+    echarts?: { init(el: HTMLElement): EChartsLike };
+  }
+
+  const el = document.querySelector<HTMLElement>('.Heatmap');
+  if (el) {
+    let store = new Map<string, DayEntry>();
+    let loading: Promise<void> | null = null;
+
+    const ready = (): Promise<void> => {
+      const w = window as unknown as WindowWithEcharts;
+      if (w.echarts) return Promise.resolve();
+      if (!loading) {
+        loading = new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = CDN;
+          script.onload = () => resolve();
+          script.onerror = () => {
+            loading = null;
+            reject(new Error(CDN));
+          };
+          document.head.appendChild(script);
+        });
+      }
+      return loading;
+    };
+
+    const cssVar = (name: string) =>
+      window.getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+    const unit = () => el!.querySelector<HTMLElement>('.hm-unit')?.textContent ?? '';
+
+    const group = (list: Array<{ date: string; chars: number; url: string; title: string }>) => {
+      const result = new Map<string, DayEntry>();
+      list.forEach((item) => {
+        if (!item || !item.date) return;
+        const day = result.get(item.date) || { chars: 0, posts: [] };
+        day.chars += item.chars || 0;
+        day.posts.push(item);
+        result.set(item.date, day);
+      });
+      return result;
+    };
+
+    // 面板宽度决定画几个月：一格约 8px，一周约 48px，最少 3 个月最多 12 个月。
+    // 起点不回退到周日（第一行左侧空几天是原版行为，按她要求撤过回退写法）
+    const rangeOf = (width: number): [string, string] => {
+      const months = Math.max(3, Math.min(12, Math.floor(width / 48)));
+      const end = new Date();
+      const start = new Date();
+      start.setMonth(start.getMonth() - months);
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      return [fmt(start), fmt(end)];
+    };
+
+    // 方格边长：echarts 的 calendar 会把格子"宽"摊满容器（配置里给的宽会被忽略，
+    // 只认 'auto'），只有"高"认配置——所以没法靠 cellSize 写一对相等的数。
+    // 办法是量它算出来的实际宽，再把高对齐过去，见 draw() 里的两趟渲染。
+    const option = (box: HTMLElement, cellHeight: number) => {
+      const days: Array<[string, number]> = [];
+      let top = 1;
+      store.forEach((day, key) => {
+        const value = Number((day.chars / 1000).toFixed(1));
+        if (value > top) top = value;
+        days.push([key, value]);
+      });
+      return {
+        tooltip: {
+          hideDelay: 1000,
+          enterable: true,
+          formatter: (p: { data: [string, number] }) => {
+            const day = store.get(p.data[0]);
+            if (!day) return p.data[0];
+            const lines = [p.data[0]];
+            day.posts.forEach((post) => {
+              lines.push(
+                '<a href="' +
+                  post.url +
+                  '" target="_blank">' +
+                  post.title +
+                  ' | ' +
+                  (post.chars / 1000).toFixed(1) +
+                  ' ' +
+                  unit() +
+                  '</a>',
+              );
+            });
+            return lines.join('<br>');
+          },
+        },
+        // 教程版的图例在 254px 侧栏会溢出，线上版本收起 visualMap、分档颜色照常，
+        // 具体数字交给 tooltip——这里跟线上版本对齐
+        visualMap: {
+          min: 0,
+          max: Math.ceil(top),
+          type: 'piecewise',
+          orient: 'horizontal',
+          left: 'center',
+          top: 2,
+          splitNumber: 4,
+          show: false,
+          text: [unit(), ''],
+          inRange: { color: ['#7aa8744c', '#7AA874'] },
+        },
+        calendar: {
+          top: 24,
+          left: 6,
+          right: 6,
+          // 宽只能是 auto（写了具体值也会被摊平），高由 draw() 对齐成方格
+          cellSize: ['auto', cellHeight],
+          range: rangeOf(box.clientWidth),
+          itemStyle: {
+            color: cssVar('--highlight') || '#F1F1F1',
+            borderWidth: 2.5,
+            borderColor: cssVar('--bg') || '#FFFFFF',
+          },
+          yearLabel: { show: false },
+          dayLabel: { show: false },
+          monthLabel: { show: true, fontSize: 10, color: cssVar('--txt') },
+          splitLine: { lineStyle: { color: 'rgba(0, 0, 0, 0)' } },
+        },
+        series: {
+          type: 'heatmap',
+          coordinateSystem: 'calendar',
+          data: days,
+        },
+      };
+    };
+
+    const resizeObserver: ResizeObserver | null =
+      typeof window.ResizeObserver === 'function' ? new window.ResizeObserver(redraw) : null;
+
+    function draw(): void {
+      const echarts = (window as unknown as WindowWithEcharts).echarts;
+      if (!echarts) return;
+      el!.querySelectorAll<HTMLElement>('.hm-chart').forEach((box) => {
+        if (!box.clientWidth) return;
+        const holder = box as unknown as { __heatmap?: EChartsLike };
+        const chart = holder.__heatmap || echarts.init(box);
+        holder.__heatmap = chart;
+        resizeObserver && resizeObserver.observe(box);
+        chart.resize();
+        // 第一趟：高度随便给，echarts 会把"周数"和格子实际宽度算进坐标系
+        chart.setOption(option(box, 12), true);
+        // 量出它算出来的格子宽 _sw，再把高度对齐 —— 格子的高宽一比一，成为方格。
+        // 两趟都在同一个 JS 任务里完成，浏览器只会在最后 paint 一次，看不到中间态。
+        const sw = (chart as unknown as { getModel?: () => CalendarModelLike })
+          .getModel?.()
+          ?.getComponent?.('calendar')?.coordinateSystem?._sw;
+        // 容器很宽时 _sw 会大到 7 行撑破图表高度，按可用高度封个顶（宁可左右留白也不溢出）
+        const rows = 7;
+        const maxCell = Math.max(6, (box.clientHeight - 24) / rows);
+        const square =
+          typeof sw === 'number' && sw > 0 ? Math.min(sw, maxCell) : Math.min(12, maxCell);
+        chart.setOption(option(box, square), true);
+        chart.off('click');
+        chart.on('click', (params) => {
+          if (params.componentType !== 'series') return;
+          const day = store.get(params.data[0]);
+          if (day && day.posts.length) {
+            window.open(day.posts[0].url, '_blank')?.focus();
+          }
+        });
+      });
+    }
+
+    let timer = 0;
+    function redraw(): void {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(draw, 200);
+    }
+
+    // 出处注释触屏开合（同一套 .on 做法）
+    el!.querySelectorAll<HTMLElement>('.hm-caption').forEach((caption) => {
+      caption.addEventListener('click', () => {
+        const opened = caption.classList.contains('on');
+        document.querySelectorAll('.hm-caption.on').forEach((o) => o.classList.remove('on'));
+        !opened && caption.classList.add('on');
+      });
+    });
+
+    fetch('/api/recent.json')
+      .then((r) => r.json())
+      .then((pdata: Array<{ date: string; chars: number; url: string; title: string }>) => {
+        store = group(pdata || []);
+        ready()
+          .then(draw)
+          .catch((err) => console.error(err));
+      });
+
+    window.addEventListener('resize', redraw);
+    // 皮肤/夜间改的是 :root 的 class，颜色从 CSS 变量现读，换挡后重画一次
+    window.MutationObserver &&
+      new window.MutationObserver(redraw).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+  }
+</script>

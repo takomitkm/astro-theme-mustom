@@ -1,0 +1,58 @@
+---
+// 阅读进度条 —— 移植自 Hexo 版 .m-progress（pjax 换页时的顶部进度条）
+// MPA 化：页面加载时步进，window load 后走满并淡出（对应原 SPA 换页手感的等价物）
+---
+
+<div class="Progress" id="mustom-progress">
+  <div class="current"></div>
+</div>
+
+<style lang="scss">
+  .Progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 0.6vmin; // 原 $progress_height
+    background: var(--progress-back);
+    z-index: 1000;
+    user-select: none;
+    pointer-events: none;
+    transition: opacity 0.4s;
+
+    .current {
+      height: 100%;
+      width: 0;
+      background: var(--progress-front);
+      transition: width 0.2s;
+    }
+
+    &.done {
+      opacity: 0;
+    }
+  }
+</style>
+
+<script>
+  const wrap = document.getElementById('mustom-progress');
+  const bar = wrap?.querySelector<HTMLElement>('.current');
+  if (wrap && bar) {
+    let cur = 8 + Math.random() * 10;
+    bar.style.width = cur + '%';
+    const timer = window.setInterval(() => {
+      cur = Math.min(cur + Math.random() * 8, 82);
+      bar.style.width = cur + '%';
+    }, 200);
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      window.clearInterval(timer);
+      bar.style.width = '100%';
+      window.setTimeout(() => wrap.classList.add('done'), 300);
+    };
+    if (document.readyState === 'complete') done();
+    else window.addEventListener('load', done, { once: true });
+    window.setTimeout(done, 8000); // 兜底：资源卡住也别一直挂着
+  }
+</script>

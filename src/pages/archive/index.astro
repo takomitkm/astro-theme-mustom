@@ -1,0 +1,15 @@
+---
+// 归档 —— 对应 layouts/Archive.vue：全部文章按年分组的时间轴
+import Base from '../../layouts/Base.astro';
+import Timeline from '../../components/Timeline.astro';
+import { getPosts, metaOf, groupByYear } from '../../lib/posts';
+import { site } from '../../config';
+
+const posts = await getPosts();
+const groups = groupByYear(posts).map((g) => ({ year: g.year, posts: g.posts.map(metaOf) }));
+const withEn = site.languages.includes('en-US');
+---
+
+<Base title={withEn ? 'Archive' : '归档'}>
+  <Timeline groups={groups} />
+</Base>

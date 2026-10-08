@@ -1,0 +1,212 @@
+---
+// 近期文章 —— 对应 Recent.vue（首屏 recentPostOffset 条，更多由 recentmore.ts 追加）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site, recentPostOffset } from '../config';
+import { getPosts, metaOf } from '../lib/posts';
+import type { PostMeta } from '../lib/posts';
+
+const posts = await getPosts();
+const metas: PostMeta[] = posts.map(metaOf);
+const initial = metas.slice(0, recentPostOffset);
+const hasMore = metas.length > recentPostOffset;
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Recent card">
+  <div class="caption">
+    <span class="icon"><Icon name="clock" fw /></span>
+    <T zh={zhCN.recent.caption} en={withEn ? enUS.recent.caption : undefined} />
+  </div>
+  <div class="inner">
+    <div class="list">
+      {
+        initial.map((post) => (
+          <div class="list-item">
+            <div class="item-info markdown-body">
+              <div class="item-title">
+                <a href={post.url}>{post.title}</a>
+              </div>
+              <div class="item-meta">
+                <div class="meta-date">
+                  <Icon name="calendar-alt" fw /> {post.date}
+                </div>
+                <div class="meta-updated">
+                  <Icon name="calendar-check" fw /> {post.updated}
+                </div>
+                {post.categories.length > 0 && (
+                  <div class="meta-categories">
+                    <Icon name="folder-open" fw />
+                    {post.categories.map((cate, j) => (
+                      <>
+                        {j !== 0 && <span>&nbsp;,</span>}
+                        <a href={`/categories/${encodeURIComponent(cate)}/`}>{cate}</a>
+                      </>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div class="item-excerpt" set:html={post.excerpt} />
+            </div>
+            {post.cover && (
+              <div class="item-cover" style={`background-image:url('${post.cover}')`} />
+            )}
+          </div>
+        ))
+      }
+    </div>
+    {
+      hasMore && (
+        <div class="more" data-offset={recentPostOffset}>
+          <T zh={zhCN.recent.more} en={withEn ? enUS.recent.more : undefined} />
+        </div>
+      )
+    }
+  </div>
+  <div class="minimize">
+    <Icon name="minus" class="minus" />
+    <Icon name="plus" class="plus" />
+  </div>
+  {/* 「更多文章」客户端追加时克隆这里的图标（astro-icon 无法在运行时生成 svg 字符串） */}
+  <template id="recent-icons">
+    <span data-icon="date"><Icon name="calendar-alt" fw /></span>
+    <span data-icon="updated"><Icon name="calendar-check" fw /></span>
+    <span data-icon="cats"><Icon name="folder-open" fw /></span>
+  </template>
+</div>
+
+<style lang="scss">
+
+  .inner {
+    padding: 0.25rem 0 0;
+  }
+
+  .list :global(.list-item) {
+    position: relative;
+    padding: $gap $gap calc(#{$gap} - 0.25rem);
+
+    @media (max-width: $smallestWidth) {
+      padding: 1rem 1rem 0.75rem;
+    }
+
+    &:not(:last-child) {
+      border-bottom: 0.25rem solid var(--highlight);
+    }
+
+    // 自定义分隔符：坐在条目之间那道缝（原 border-bottom）里，不再压在条目开头；
+    // 绝对定位的包含块是 .list-item 的 padding 盒，本就等于整栏宽度，
+    // 所以 left/right 取 0 正好顶满正文栏，不该再往外扩
+    &:not(:last-child)::after {
+      content: var(--divider, '✟⫘⫘⫘⫘⫘⫘⫘⫘✟');
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -0.125rem;
+      height: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      font-size: 0.85em;
+      line-height: 1;
+      letter-spacing: 0.15em;
+      color: var(--txt);
+      opacity: 0.45;
+      pointer-events: none;
+    }
+  }
+
+  .list :global(.item-info) {
+    z-index: 1;
+    position: relative;
+
+    :global(div),
+    :global(p) {
+      margin-bottom: 0.75rem;
+    }
+  }
+
+  .list :global(.item-title) {
+    font-size: 1.5rem;
+
+    a {
+      color: var(--link);
+      font-weight: 666;
+    }
+
+    @media (max-width: $smallestWidth) {
+      font-size: 1rem;
+      font-weight: 555;
+    }
+  }
+
+  .list :global(.item-meta) {
+    user-select: none;
+
+    @media (min-width: $smallestWidth) {
+      display: grid;
+      grid-template-columns: max-content max-content auto;
+      gap: 1.25rem;
+    }
+
+    a {
+      color: var(--link-markdown);
+      font-weight: 666;
+
+      @media (max-width: $smallestWidth) {
+        font-weight: 400;
+      }
+    }
+  }
+
+  .list :global(.item-cover) {
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: top;
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0.1;
+  }
+
+  .list :global(.item-excerpt) {
+    :global(img) {
+      display: none;
+    }
+    :global(p:last-child) {
+      margin-bottom: 0;
+    }
+  }
+
+  .more {
+    user-select: none;
+    border-top: 0.25rem solid var(--underline);
+    color: var(--underline);
+    padding: 0.5rem;
+    text-align: center;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--bg);
+      background-color: var(--underline);
+    }
+
+    @media (max-width: $smallestWidth) {
+      font-size: 0.8rem;
+      padding: 0.75rem;
+      color: var(--bg);
+      background-color: var(--underline);
+      border-top: none;
+    }
+  }
+</style>
+
+<script>
+  import { initRecentMore } from '../lib/client/recentmore';
+  initRecentMore();
+</script>

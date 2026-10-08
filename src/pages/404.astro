@@ -1,0 +1,42 @@
+---
+// 404 —— 对应 layouts/404.vue（[:path:] 由客户端填入）
+import Base from '../layouts/Base.astro';
+import Hitokoto from '../components/Hitokoto.astro';
+import Icon from '../components/Icon.astro';
+import T from '../components/T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<Base title={zhCN.notfound.caption}>
+  <div class="NotFound card">
+    <div class="caption">
+      <span class="icon"><Icon name="exclamation-circle" fw /></span>
+      <T zh={zhCN.notfound.caption} en={withEn ? enUS.notfound.caption : undefined} />
+    </div>
+    <div class="inner">
+      <span class="path"></span>
+    </div>
+    <div class="minimize">
+      <Icon name="minus" class="minus" />
+      <Icon name="plus" class="plus" />
+    </div>
+  </div>
+  <Hitokoto />
+</Base>
+
+<style lang="scss">
+  .inner {
+    padding: 2rem;
+    text-align: center;
+    font-size: 2rem;
+    word-break: break-all;
+  }
+</style>
+
+<script>
+  import { init404 } from '../lib/client/misc';
+  init404();
+</script>

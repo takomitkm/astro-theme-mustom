@@ -1,0 +1,170 @@
+---
+// 随机文章入口 —— 移植自 Hexo fork 的 adframe 改造（原二维码浮框拆剩一个圆钮）
+// 左下角圆钮，点击随机跳一篇，?utm_source=random（做法出处见她保留的注释）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Random" title={zhCN.random.title}>
+  <button type="button" class="random-btn" aria-label={zhCN.random.title}>
+    <Icon name="shuffle" />
+  </button>
+  <button type="button" class="refresh-btn" aria-label={zhCN.random.refresh}>
+    <Icon name="history" />
+  </button>
+  <span class="tip">
+    <T zh={zhCN.random.title} en={withEn ? enUS.random.title : undefined} />
+  </span>
+  <span class="tip tip-refresh">
+    <T zh={zhCN.random.refresh} en={withEn ? enUS.random.refresh : undefined} />
+  </span>
+</div>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .Random {
+    z-index: 960; // 与 Goingto 同层（原 zIndex(40)）
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: $headerHeight;
+    height: $headerHeight * 2.5;
+    user-select: none;
+    transition: transform 0.6s;
+
+    @media (max-width: $smallestWidth) {
+      transform: translate3d(-#{$headerHeight}, 0, 0);
+    }
+
+    button {
+      display: block;
+      width: $headerHeight * 0.5;
+      height: $headerHeight * 0.5;
+      line-height: $headerHeight * 0.5;
+      margin: $headerHeight * 0.25 $headerHeight * 0.25 $headerHeight * 0.2;
+      text-align: center;
+      background: var(--bg);
+      border-radius: $borderRadius;
+      border: none;
+      color: var(--txt);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.6s, color 0.6s;
+
+      &:hover {
+        color: var(--link);
+      }
+    }
+
+    // 强制刷新：转起来表示正在清缓存
+    .refresh-btn.busy :global(svg) {
+      animation: random-spin 0.9s linear infinite;
+    }
+
+    .tip {
+      position: absolute;
+      left: calc(100% + #{$gap * 0.5});
+      bottom: $gap;
+      width: max-content;
+      max-width: min(90vw, 22em);
+      padding: $gap * 0.5 $gap;
+      font-size: 0.75em;
+      line-height: 1.5;
+      font-style: normal;
+      text-align: left;
+      color: var(--header);
+      background: var(--highlight);
+      border: 1px solid var(--article-ending);
+      border-radius: $borderRadius;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .tip-refresh {
+      bottom: $headerHeight * 0.95;
+    }
+
+    &:hover .tip,
+    button:focus ~ .tip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  @keyframes random-spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+</style>
+
+<script>
+  // 清单不另建：/api/recent.json 本来就是全站文章的 url 索引，点了才取
+  const btn = document.querySelector<HTMLElement>('.Random .random-btn');
+  btn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    fetch('/api/recent.json')
+      .then((r) => r.json())
+      .then((data: Array<{ url: string }>) => {
+        if (!data || !data.length) return;
+        const post = data[Math.floor(Math.random() * data.length)];
+        window.location.href = post.url + '?utm_source=random';
+      });
+  });
+
+  /* ---------- 强制刷新：绕开 Service Worker、Cache Storage 与 CDN 边缘缓存 ----------
+     顺序要紧：先注销 SW（否则它会继续接管这一页的请求），再清 Cache Storage，
+     最后带时间戳跳转——URL 变了 CDN 才不会拿自己那份旧副本应答。 */
+  const refreshBtn = document.querySelector<HTMLButtonElement>('.Random .refresh-btn');
+
+  const purgeCaches = async (): Promise<void> => {
+    // 1) 注销全部 Service Worker（含 waiting/waiting 之外的）
+    if ('serviceWorker' in navigator) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((r) => r.unregister()));
+      } catch {
+        /* ignore */
+      }
+    }
+    // 2) 清 Cache Storage（PWA 预缓存与运行时缓存都在这）
+    if ('caches' in window) {
+      try {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      } catch {
+        /* ignore */
+      }
+    }
+    // 3) 顺手清掉不蒜子之类写进 localStorage 的统计缓存，避免数字滞留
+    try {
+      for (const key of Object.keys(localStorage)) {
+        if (/busuanzi|bc[a-z]*/i.test(key)) localStorage.removeItem(key);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  refreshBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (refreshBtn.classList.contains('busy')) return;
+    refreshBtn.classList.add('busy');
+    try {
+      await purgeCaches();
+      // 4) 带时间戳重载当前页：HTML 拿到新的，页面里的旧 JS/CSS 引用也随之更新
+      const url = new URL(window.location.href);
+      url.searchParams.set('_r', Date.now().toString());
+      window.location.replace(url.toString());
+    } catch {
+      refreshBtn.classList.remove('busy');
+    }
+  });
+</script>

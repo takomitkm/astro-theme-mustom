@@ -1,0 +1,43 @@
+---
+// 回到顶部/底部 —— 对应 Goingto.vue
+import Icon from './Icon.astro';
+---
+
+<div class="Goingto">
+  <div class="top"><Icon name="arrow-up" /></div>
+  <div class="bottom"><Icon name="arrow-down" /></div>
+</div>
+
+<style lang="scss">
+
+  .Goingto {
+    z-index: 960; // 原 zIndex(40)
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    width: $headerHeight;
+    height: $headerHeight * 1.75;
+    user-select: none;
+    transition: transform 0.6s;
+
+    @media (max-width: $smallestWidth) {
+      transform: translate3d(#{$headerHeight}, 0, 0);
+    }
+  }
+
+  .top,
+  .bottom {
+    width: $headerHeight * 0.5;
+    line-height: $headerHeight * 0.5;
+    margin: $headerHeight * 0.25;
+    text-align: center;
+    background: var(--bg);
+    border-radius: $borderRadius;
+    cursor: pointer;
+    transition: background 0.6s, color 0.6s;
+
+    &:hover {
+      color: var(--underline);
+    }
+  }
+</style>

@@ -1,0 +1,37 @@
+---
+// 左抽屉 —— 对应 Drawer.vue（fixed 满高，随页面滚动差速平移）
+import Brand from './Brand.astro';
+import Menu from './Menu.astro';
+import Skin from './Skin.astro';
+import Settings from './Settings.astro';
+---
+
+<div class="Drawer">
+  <Brand />
+  <Menu />
+  <Skin />
+  <Settings />
+</div>
+
+<style lang="scss">
+
+  .Drawer {
+    z-index: 950; // 原 zIndex(50)
+    position: fixed;
+    top: $headerHeight;
+    height: calc(100vh - #{$headerHeight});
+    width: $sideWidth;
+    overflow: hidden;
+    transition: transform 0.6s, opacity 0.6s;
+  }
+
+  @media (max-width: $smallerWidth) {
+    .Drawer {
+      position: relative;
+      top: auto;
+      height: auto;
+      width: 100%;
+      overflow: visible;
+    }
+  }
+</style>

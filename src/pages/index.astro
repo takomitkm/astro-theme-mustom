@@ -1,0 +1,14 @@
+---
+// 首页 —— 对应 layouts/Home.vue：一言 + 近期文章 + 评论
+import Base from '../layouts/Base.astro';
+import Hitokoto from '../components/Hitokoto.astro';
+import Recent from '../components/Recent.astro';
+import Comment from '../components/Comment.astro';
+import { site } from '../config';
+---
+
+<Base title={site.languages.includes('en-US') ? 'Home' : '首页'}>
+  <Hitokoto />
+  <Recent />
+  <Comment />
+</Base>

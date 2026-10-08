@@ -1,0 +1,118 @@
+---
+// 评论 —— 移植 zmfk fork 的 Giscus 方案：动态注入 + 主题/语言热切换
+// （skin-night 皮肤 → dark；zh/en 跟随设置；加载中切语言则重载）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { comment } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+// repoId / categoryId 未填时不渲染，避免控制台报错
+const enabled = !!comment && !!comment.repoId && !!comment.categoryId;
+---
+
+{
+  enabled && comment && (
+    <div class="Comment card">
+      <div class="caption">
+        <span class="icon">
+          <Icon name="comments" fw />
+        </span>
+        <T zh={zhCN.comment.caption} en={withEn ? enUS.comment.caption : undefined} />
+      </div>
+      <div class="inner">
+        <div class="giscus-container" />
+      </div>
+      <div class="minimize">
+        <Icon name="minus" class="minus" />
+        <Icon name="plus" class="plus" />
+      </div>
+    </div>
+  )
+}
+
+<style lang="scss">
+  .inner {
+    padding: $gap * 0.5;
+
+    @media (max-width: $smallestWidth) {
+      padding: 0;
+    }
+  }
+</style>
+
+<script>
+  // 以下逻辑在 comment 配置完整时才有宿主元素
+  import { comment } from '../config';
+
+  const container = document.querySelector<HTMLElement>('.Comment .giscus-container');
+  if (container && comment?.repoId && comment.categoryId) {
+    const state = { ready: false, loading: false };
+
+    const currentTheme = () =>
+      document.documentElement.classList.contains('skin-night') ? 'dark' : 'light';
+    const currentLang = () =>
+      document.documentElement.classList.contains('lang-en') ? 'en' : 'zh-CN';
+
+    function loadGiscus(): void {
+      container!.innerHTML = ''; // 清空容器，中止任何正在进行的加载
+      document.querySelector('script[src="https://giscus.app/client.js"]')?.remove();
+
+      const script = document.createElement('script');
+      script.src = 'https://giscus.app/client.js';
+      script.setAttribute('data-repo', comment!.repo);
+      script.setAttribute('data-repo-id', comment!.repoId);
+      script.setAttribute('data-category', comment!.category);
+      script.setAttribute('data-category-id', comment!.categoryId);
+      script.setAttribute('data-mapping', comment!.mapping);
+      script.setAttribute('data-reactions-enabled', '1');
+      script.setAttribute('data-emit-metadata', '0');
+      script.setAttribute('data-input-position', 'top');
+      script.setAttribute('data-theme', currentTheme());
+      script.setAttribute('data-lang', currentLang());
+      script.setAttribute('crossorigin', 'anonymous');
+      script.async = true;
+
+      state.ready = false;
+      state.loading = true;
+      script.onload = () => {
+        // giscus client 异步建 iframe，轮询等它出现
+        let tries = 0;
+        const timer = window.setInterval(() => {
+          const iframe = container!.querySelector('iframe.giscus-frame');
+          if (iframe || ++tries > 30) {
+            window.clearInterval(timer);
+            state.ready = !!iframe;
+            state.loading = false;
+          }
+        }, 100);
+      };
+      script.onerror = () => {
+        state.loading = false;
+      };
+      container!.appendChild(script);
+    }
+
+    function setConfig(patch: { theme?: string; lang?: string }): void {
+      const iframe = container!.querySelector<HTMLIFrameElement>('iframe.giscus-frame');
+      if (iframe?.contentWindow) {
+        iframe.contentWindow.postMessage({ giscus: { setConfig: patch } }, 'https://giscus.app');
+      } else {
+        state.ready = false;
+        loadGiscus();
+      }
+    }
+
+    document.addEventListener('mustom:skin', () => {
+      if (state.ready) setConfig({ theme: currentTheme() });
+    });
+    document.addEventListener('mustom:lang', () => {
+      if (state.loading) loadGiscus();
+      else if (state.ready) setConfig({ lang: currentLang() });
+      else loadGiscus();
+    });
+
+    loadGiscus();
+  }
+</script>

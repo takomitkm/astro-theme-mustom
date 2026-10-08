@@ -1,0 +1,127 @@
+---
+// 一言 —— 对应 Hitokoto.vue（内容由 hitokoto.ts 客户端拉取替换）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { images, hitokoto } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+const before = images.hitokotoLeft ? `background-image:url('${images.hitokotoLeft}')` : undefined;
+const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRight}')` : undefined;
+---
+
+<div class="Hitokoto card">
+  <div class="caption">
+    <span class="icon"><Icon name="circle-notch" fw /></span>
+    <T zh={zhCN.hitokoto.caption} en={withEn ? enUS.hitokoto.caption : undefined} />
+  </div>
+  <div class="inner">
+    <div class="before" style={before}></div>
+    <div class="word">{hitokoto.placeholder?.word ?? 'Loading...'}</div>
+    <div class="from"><span>{hitokoto.placeholder?.from ?? 'Loading...'}</span></div>
+    <div class="after" style={after}></div>
+  </div>
+  <div class="minimize">
+    <Icon name="minus" class="minus" />
+    <Icon name="plus" class="plus" />
+  </div>
+</div>
+
+<style lang="scss">
+
+  .inner {
+    line-height: 1.5;
+    position: relative;
+    border-bottom: $borderRadius solid var(--highlight);
+    padding-bottom: $hitokotoImgHeight * 0.66;
+    text-align: center;
+
+    @media (max-width: $smallestWidth) {
+      padding-bottom: $hitokotoImgHeight * 0.33;
+    }
+
+    .before,
+    .after {
+      position: absolute;
+      bottom: 0;
+      height: $hitokotoImgHeight * 0.66;
+      width: $hitokotoImgWidth * 0.66;
+      background-size: cover;
+
+      @media (max-width: $smallestWidth) {
+        height: $hitokotoImgHeight * 0.33;
+        width: $hitokotoImgWidth * 0.33;
+      }
+    }
+
+    .before {
+      left: 0;
+    }
+
+    .after {
+      right: 0;
+    }
+  }
+
+  .word {
+    padding: 2rem;
+    position: relative;
+    font-size: 1.25rem;
+    // 句子只在标点处换行（Hexo fork 的 hitokoto.styl）
+    word-break: keep-all;
+    overflow-wrap: break-word;
+
+    &::before {
+      content: '『';
+      position: absolute;
+      left: 0.5rem;
+      top: 1rem;
+    }
+    &::after {
+      content: '』';
+      position: absolute;
+      right: 0.5rem;
+      bottom: 1rem;
+    }
+
+    @media (max-width: $smallestWidth) {
+      padding: 1rem;
+      font-size: 1rem;
+      &::before,
+      &::after {
+        display: none;
+      }
+    }
+  }
+
+  .from {
+    position: absolute;
+    width: 100%;
+    padding: 1rem 0;
+    z-index: 1; // 夜间不被两侧表情盖住（Hexo fork 的修复）
+
+    // 作者行收进一个铺底色的小盒（Hexo fork 样式）
+    :global(span) {
+      display: inline-block;
+      background: var(--bg);
+      padding: 0.15em 0.4em;
+      border-radius: $borderRadius;
+    }
+
+    &::before,
+    &::after {
+      content: ' — ';
+    }
+
+    @media (max-width: $smallestWidth) {
+      position: relative;
+      padding: 0;
+    }
+  }
+</style>
+
+<script>
+  import { initHitokoto } from '../lib/client/hitokoto';
+  initHitokoto();
+</script>

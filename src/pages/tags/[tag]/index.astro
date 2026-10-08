@@ -1,0 +1,36 @@
+---
+// 单个标签的文章时间轴 —— 对应 /tag/<key>/（scopeLayout Archive）
+import Base from '../../../layouts/Base.astro';
+import Timeline from '../../../components/Timeline.astro';
+import { getPosts, metaOf, groupByYear } from '../../../lib/posts';
+import { site } from '../../../config';
+import { zhCN, enUS } from '../../../lib/locales';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const names = new Set<string>();
+  for (const p of posts) for (const t of p.data.tags ?? []) names.add(t);
+  return [...names].map((tag) => ({ params: { tag: encodeURIComponent(tag) }, props: { tag } }));
+}
+
+const { tag } = Astro.props;
+const posts = (await getPosts()).filter((p) => (p.data.tags ?? []).includes(tag));
+const groups = groupByYear(posts).map((g) => ({ year: g.year, posts: g.posts.map(metaOf) }));
+const withEn = site.languages.includes('en-US');
+const caption = `${withEn ? enUS.tagpage.caption : zhCN.tagpage.caption} · ${tag}`;
+---
+
+<Base title={caption}>
+  <div class="Scope card">
+    <div class="inner">{caption}</div>
+  </div>
+  <Timeline groups={groups} />
+</Base>
+
+<style>
+  .Scope .inner {
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 1.5rem;
+  }
+</style>

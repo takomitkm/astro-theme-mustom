@@ -1,0 +1,15 @@
+---
+// 标签索引 —— 对应 @vuepress/plugin-blog frontmatters 的 /tag/ 页
+import Base from '../../layouts/Base.astro';
+import Cloud from '../../components/Cloud.astro';
+import { getPosts, nameMap, maxCount } from '../../lib/posts';
+import { site } from '../../config';
+
+const posts = await getPosts();
+const entries = nameMap(posts, 'tags');
+const withEn = site.languages.includes('en-US');
+---
+
+<Base title={withEn ? 'Tags' : '标签'}>
+  <Cloud mode="tags" entries={entries} total={posts.length} max={maxCount(entries)} />
+</Base>

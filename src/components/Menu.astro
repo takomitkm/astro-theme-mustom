@@ -1,0 +1,111 @@
+---
+// 菜单 —— 对应 parts/Menu.vue（router-link-exact-active → 精确路径比对）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { menus, site } from '../config';
+
+const normalize = (p: string) => {
+  let s = decodeURIComponent(p);
+  if (s.length > 1) s = s.replace(/\/+$/, '') || '/';
+  return s;
+};
+const here = normalize(Astro.url.pathname);
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Menu">
+  {
+    menus.map((menu) => (
+      <div class="card">
+        <div class="caption">
+          <span class="icon">
+            <Icon name={menu.icon} fw />
+          </span>
+          <T zh={menu.caption['zh-CN']} en={withEn ? menu.caption['en-US'] : undefined} />
+        </div>
+        <div class="inner">
+          {menu.items.map((item) => (
+            <a
+              href={item.link}
+              class:list={[{ active: here === normalize(item.link) }]}
+            >
+              <span class="icon">
+                <Icon name={item.icon} fw />
+              </span>
+              <T zh={item.text['zh-CN']} en={withEn ? item.text['en-US'] : undefined} />
+            </a>
+          ))}
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<style lang="scss">
+
+  .Menu {
+    user-select: none;
+  }
+
+  .inner {
+    padding: 0.5rem 0;
+
+    @media (min-width: $smallestWidth) and (max-width: $smallerWidth) {
+      padding: 0.5rem 1rem;
+    }
+  }
+
+  .inner :global(a) {
+    display: block;
+    padding: 1rem;
+    line-height: 1;
+    color: var(--txt);
+    position: relative;
+
+    &::before {
+      display: none;
+    }
+
+    @media (min-width: $smallestWidth) {
+      &:hover {
+        background: var(--highlight);
+      }
+    }
+
+    &::after {
+      content: '';
+      height: 1rem;
+      width: 1rem;
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      border-radius: $borderRadius;
+    }
+
+    &.active {
+      background: var(--txt);
+      color: var(--bg);
+      &::after {
+        background: var(--underline);
+        border: 2px solid;
+      }
+    }
+
+    @media (min-width: $smallestWidth) and (max-width: $smallerWidth) {
+      display: inline-block;
+      border-radius: $borderRadius;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      padding: 0.5rem;
+
+      &.active {
+        &::after {
+          display: none;
+        }
+      }
+      :global(.icon) {
+        display: none;
+      }
+    }
+  }
+</style>

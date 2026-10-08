@@ -1,0 +1,179 @@
+// 皮肤变量系统 —— 三套皮肤：jshine（彩色）/ whiteblack（黑白）/ night（夜间）
+// 皮肤类挂在 <html> 上（boot 脚本在首帧前写入，无闪烁）：skin-jshine / skin-whiteblack / skin-night
+// 原"夜间叠加模式"已按用户要求改成独立皮肤 skin-night，叠加类不复存在
+
+html {
+  // 阅读进度条（Hexo 版固定双色，不随皮肤）
+  --progress-front: #333333;
+  --progress-back: #eeeeee;
+  // 搜索命中高亮（Hexo fork 的 --color-search-highlight）
+  --search-highlight: #00cc99;
+  // 字体链（Hexo fork dimension.styl 的 $font_body / $font_drawer）：
+  // 前三款外链（Base.astro 的 <link>），第四款由访客设备兜底，逐字回退
+  --font-body: 'Huiwen-mincho', 'STDongGuanTi Bld', 'Noto Sans SC', Arial, Helvetica, sans-serif;
+  --font-drawer: 'Source Han Serif CN VF', 'Huiwen-mincho', 'STDongGuanTi Bld', 'Noto Sans SC',
+    Arial, Helvetica, sans-serif;
+  // 整站壁纸（html.wallpaper 时生效，见 Base.astro；对应 Hexo 的 --color-body-back）
+  --wallpaper: url('/images/bg.jpg') center / cover no-repeat fixed;
+
+  &.skin-jshine {
+    --txt: #333333;
+    --bg: #ffffff;
+    --bg-global: linear-gradient(120deg, #ff3300, #cc66ff, #00ccff);
+    --highlight: #f5f5f5;
+    --link: #ff3300;
+    --link-markdown: #0099ff;
+    --selection: #cc66ff;
+    --underline: #00ccff;
+    --spinner: #666666;
+    --spinner-bg: #ffffff99;
+    --header: #333333;
+    --header-bg: #ffffff;
+    --translate-bg-highlight: #00000033;
+    --article-language-bg: #00ccffaa;
+    --article-language-txt: #ffffff;
+    --article-ending: #dddddd;
+    --article-license-bg: #ff33000d;
+    --readme-more-txt: #ffffff;
+    --readme-more-bg: #0099ff;
+    --readme-more-warn: #ff3333;
+    --txt-shadow: #dddddd;
+    --settings-highlight: #e6e6e6;
+    --post-title: #000000;
+    --post-categories: #999999;
+    --table-row: #ffffffb3;
+    --table-row-alt: #f6f8fab3;
+    --translater-back: #ffffff;
+  }
+
+  // 原 jshine 的黑白版：同构渐变换成灰阶（应用户要求由皮肤3改出）
+  &.skin-whiteblack {
+    --txt: #333333;
+    --bg: #ffffff;
+    --bg-global: linear-gradient(120deg, #666666, #999999, #333333);
+    --highlight: #f5f5f5;
+    --link: #ff3300;
+    --link-markdown: #0099ff;
+    --selection: #ff3300;
+    --underline: #ff3300;
+    --spinner: #333333;
+    --spinner-bg: #ffffff99;
+    --header: #333333;
+    --header-bg: #ffffff;
+    --translate-bg-highlight: #00000066;
+    --article-language-bg: #ff330099;
+    --article-language-txt: #ffffff;
+    --article-ending: #d1d1d1;
+    --article-license-bg: #f9f9f9;
+    --readme-more-txt: #ffffff;
+    --readme-more-bg: #0099ff;
+    --readme-more-warn: #ff3333;
+    --txt-shadow: #dddddd;
+    --settings-highlight: #e6e6e6;
+    --post-title: #000000;
+    --post-categories: #999999;
+    --table-row: #ffffffb3;
+    --table-row-alt: #f6f8fab3;
+    --translater-back: #ffffff;
+  }
+
+  // 原 jshine 的夜间模式独立成皮肤（常驻深色）
+  &.skin-night {
+    --txt: #cccccc;
+    --bg: #000000;
+    --bg-global: linear-gradient(180deg, #000000, #111111, #111111, #222222);
+    --highlight: #333333;
+    --link: #cc3300;
+    --link-markdown: #00ccff;
+    --selection: #cccccc;
+    --underline: #666666;
+    --spinner: #cccccc;
+    --spinner-bg: #00000099;
+    --header: #cccccc;
+    --header-bg: #000000;
+    --translate-bg-highlight: #ffffff11;
+    --article-language-bg: #66666699;
+    --article-language-txt: #cccccc;
+    --article-ending: #333333;
+    --article-license-bg: #333333;
+    --readme-more-txt: #cccccc;
+    --readme-more-bg: #006699;
+    --readme-more-warn: #990033;
+    --txt-shadow: #555555;
+    --settings-highlight: #666666;
+    --post-title: #cccccc;
+    --post-categories: #999999;
+    --table-row: #000000b3;
+    --table-row-alt: #1c1c1cb3;
+    --translater-back: #1a1a1a;
+  }
+}
+
+// 双语切换：html.lang-en 时隐藏中文、显示英文
+html:not(.lang-en) .m-en {
+  display: none !important;
+}
+html.lang-en .m-zh {
+  display: none !important;
+}
+
+// 移动端（UA 粗判，boot 脚本写入 .is-mobile）
+html.is-mobile {
+  .Toc,
+  .Empty,
+  .Translate,
+  .readmode,
+  .Addin {
+    display: none !important;
+  }
+  // 皮肤面板：窄屏不再隐藏，进抽屉铺满整宽（Hexo fork 的 skin.styl 改造）
+  .Skin .inner {
+    display: flex;
+    flex-wrap: wrap;
+  }
+}
+
+// 整站壁纸（html.wallpaper，由 config 的 images.wallpaper 决定）：
+// body 铺壁纸，GlobalLayout 用半透明纱罩住（浅色皮肤白纱 / 夜间皮肤黑纱）
+html.wallpaper body {
+  background: var(--wallpaper);
+}
+html.wallpaper .GlobalLayout {
+  --wallpaper-veil: rgba(255, 255, 255, 0.72);
+}
+html.wallpaper.skin-night .GlobalLayout {
+  --wallpaper-veil: rgba(0, 0, 0, 0.6);
+}
+html.wallpaper .GlobalLayout {
+  background: linear-gradient(var(--wallpaper-veil), var(--wallpaper-veil)), var(--wallpaper);
+}
+
+// 一言卡的 BGM 形态：≤1016px 播放器搬进来（Biliplayer 脚本负责搬 DOM）
+.Hitokoto.hitokoto-bgm {
+  .Biliplayer {
+    width: 100%;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+
+    .player-caption {
+      display: none; // 手机版不显示"我的歌单"标题栏：一言卡已有标题，且 × 在手机上关不掉
+    }
+  }
+
+  // 作者行从绝对定位改常规流，避免压在比原图高得多的视频上
+  .from {
+    position: static;
+    padding: 0 1rem;
+  }
+}
+
+// 门户/搜索浮层或阅读模式开启时冻结背景（原 GlobalLayout.fixed）
+html.ext-portal,
+html.ext-search,
+html.readmode {
+  .GlobalLayout {
+    position: fixed;
+    width: 100%;
+  }
+}

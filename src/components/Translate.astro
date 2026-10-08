@@ -1,0 +1,222 @@
+---
+// 划词翻译 —— 移植自 Hexo fork 的 translater part（谷歌免密钥端点）
+// 选中正文文字 → 语言条出现在选区下方 → 点语言翻译/点复制复制选区
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Translate">
+  <div class="bar">
+    <button type="button" class="bar-zh" data-to="zh">中</button>
+    <button type="button" class="bar-en" data-to="en">EN</button>
+    <button type="button" class="bar-jp" data-to="jp">日</button>
+    <span class="bar-to">
+      <T
+        zh="→ 翻译"
+        en={withEn ? "→ translate" : undefined}
+      />
+    </span>
+    <button type="button" class="bar-copy">
+      <T zh={zhCN.translate.copytip} en={withEn ? enUS.translate.copytip : undefined} />
+    </button>
+  </div>
+  <div class="result"></div>
+</div>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .Translate {
+    display: none;
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 975;
+    max-width: min(92vw, 48em);
+    background: var(--translater-back);
+    border: 1px solid var(--article-ending);
+    border-radius: $borderRadius;
+    box-shadow: 0 0 1px var(--txt);
+    font-size: 0.9em;
+    line-height: 1.5;
+    user-select: none;
+
+    &.active {
+      display: block;
+      animation: appear 0.2s ease;
+    }
+  }
+
+  .bar {
+    display: flex;
+    align-items: center;
+    padding: $gap * 0.25 $gap * 0.5;
+
+    button {
+      cursor: pointer;
+      padding: 0.15em 0.7em;
+      border: none;
+      background: none;
+      color: var(--txt);
+      font: inherit;
+      min-width: 3em;
+
+      &:hover {
+        background: var(--highlight);
+      }
+    }
+
+    .bar-zh {
+      clear: left;
+    }
+
+    .default {
+      text-decoration: underline;
+      text-underline-offset: 0.25em;
+    }
+
+    .bar-to {
+      opacity: 0.6;
+      padding: 0 0.35em;
+    }
+  }
+
+  .result {
+    display: none;
+    padding: $gap * 0.5 $gap $gap;
+    border-top: 1px solid var(--article-ending);
+    user-select: text;
+
+    :global(p) {
+      margin-bottom: 0.5em;
+    }
+    :global(p:last-child) {
+      margin-bottom: 0;
+    }
+    :global(p.error) {
+      color: var(--readme-more-warn);
+    }
+    :global(p.content) {
+      white-space: pre-wrap;
+    }
+  }
+</style>
+
+<script>
+  // 逐行移植自 Hexo fork 的 translater.js + util.js googleTranslate（免密钥公共端点）
+  import { zhCN } from '../lib/locales';
+
+  const root = document.querySelector<HTMLElement>('.Translate');
+  if (root && !document.documentElement.classList.contains('is-mobile')) {
+    let to = localStorage.getItem('mustom:translater-to') || 'zh';
+    const langs: Record<string, string> = { zh: '.bar-zh', en: '.bar-en', jp: '.bar-jp' };
+    const googleLangs: Record<string, string> = { zh: 'zh-CN', en: 'en', jp: 'ja' };
+    let isInside = false;
+
+    const result = root.querySelector<HTMLElement>('.result')!;
+
+    const setContent = (show: boolean, content = '') => {
+      result.style.display = show ? 'block' : 'none';
+      result.innerHTML = content;
+      root.classList.toggle('active', show);
+    };
+
+    const markTo = () => {
+      Object.keys(langs).forEach((key) => {
+        root.querySelector<HTMLElement>(langs[key])?.classList.toggle('default', key === to);
+      });
+    };
+
+    const escapeHtml = (s: string) =>
+      s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+    function googleTranslate(
+      query: string,
+      lang: string,
+      callback: (r: { error?: string; result?: string }) => void,
+    ): void {
+      if (query.length === 0) return callback({ error: '<p class="error">EMPTY QUERY / 空查询</p>' });
+      if (query.length > 5000)
+        return callback({ error: '<p class="error">HUGE QUERY / 巨查询</p>' });
+      const target = googleLangs[lang] || lang;
+      const url =
+        'https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=' +
+        encodeURIComponent(target) +
+        '&q=' +
+        encodeURIComponent(query);
+      const abort = new AbortController();
+      const timer = window.setTimeout(() => abort.abort(), 8000);
+      const fail = (msg: string) =>
+        callback({ error: '<p class="error">TRANSLATE FAILED / 翻译失败：' + msg + '</p>' });
+      window
+        .fetch(url, { signal: abort.signal })
+        .then((r) => {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then((data: unknown) => {
+          const text = (Array.isArray(data) ? data : [])
+            .map((seg) => (Array.isArray(seg) && typeof seg[0] === 'string' ? seg[0] : ''))
+            .join('');
+          if (!text) return fail('空响应');
+          callback({
+            result:
+              '<p class="result">' + zhCN.translate.result + '：</p><p class="content">' +
+              escapeHtml(text) +
+              '</p>',
+          });
+        })
+        .catch((e: { name?: string; message?: string }) => {
+          fail(e && e.name === 'AbortError' ? '超时' : (e && e.message) || '网络不可达');
+        })
+        .finally(() => window.clearTimeout(timer));
+    }
+
+    const center = document.querySelector<HTMLElement>('.GlobalLayout .center');
+
+    center?.addEventListener('mousedown', () => {
+      isInside = true;
+      setContent(false);
+      const sel = window.getSelection();
+      sel && sel.empty?.();
+    });
+
+    document.addEventListener('mouseup', (e) => {
+      const query = window.getSelection()?.toString().trim() ?? '';
+      if (isInside && query.length > 0) {
+        const selection = window.getSelection()!;
+        const rect = selection.getRangeAt(0).getBoundingClientRect();
+        root.style.top = Math.round(rect.bottom + window.scrollY + 8) + 'px';
+        const path = e.composedPath?.() ?? [];
+        const inEl = (sel2: Element | null) => !!sel2 && path.includes(sel2);
+        if (inEl(root.querySelector('.bar-copy'))) {
+          if (document.execCommand('copy')) {
+            setContent(true, '<p>Copied! 复制成功！</p>');
+          }
+        } else {
+          const hit = Object.keys(langs).find((key) => inEl(root.querySelector(langs[key])));
+          if (hit) {
+            to = hit;
+            localStorage.setItem('mustom:translater-to', to);
+            markTo();
+            setContent(true, '<p>...</p>');
+            googleTranslate(query, to, (r) => {
+              if (r.error) setContent(true, r.error!);
+              else if (r.result) setContent(true, r.result!);
+            });
+          } else if (!inEl(root)) {
+            setContent(false);
+          }
+        }
+      } else {
+        setContent(false);
+      }
+      isInside = false;
+    });
+
+    markTo();
+  }
+</script>

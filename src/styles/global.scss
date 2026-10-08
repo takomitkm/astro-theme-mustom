@@ -1,0 +1,547 @@
+// 全局样式 —— 移植自 vuepress-theme-mustom styles/index.styl + GlobalLayout.vue 全局部分
+@use 'skin';
+
+/* ---------- reset（对应 index.styl 顶部的大选择器） ---------- */
+article, aside, blockquote, body, button, code, dd, details, div, dl, dt,
+fieldset, figcaption, figure, footer, form, h1, h2, h3, h4, h5, h6, header,
+hgroup, hr, input, legend, li, menu, nav, ol, p, pre, section, td, textarea,
+th, ul, a, i, svg {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+article, aside, blockquote, body, button, code, dd, details, div, dl, dt,
+fieldset, figcaption, figure, footer, form, h1, h2, h3, h4, h5, h6, header,
+hgroup, hr, input, legend, li, menu, nav, ol, p, pre, section, td, textarea,
+th, ul, a, i {
+  transition: background 0.6s, opacity 0.6s;
+}
+
+/* ---------- base ---------- */
+html {
+  font-size: $fontSize;
+  line-height: $lineHeight;
+  letter-spacing: 1px;
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+  overflow-y: scroll;
+  // 根画布显式着色：Article 负 margin 会让文档略高于内容，
+  // 深色系统 WebView 会把未着色的根画布涂黑
+  background: var(--bg);
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 500;
+  min-width: $minWidth;
+}
+
+::-webkit-scrollbar {
+  @include webkit-scrollbar;
+}
+::-webkit-scrollbar-thumb {
+  @include webkit-scrollbar-thumb;
+}
+
+::selection {
+  color: var(--bg);
+  background: var(--selection);
+}
+
+a {
+  text-decoration: none;
+  color: var(--link);
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    height: 2px;
+    width: 0;
+    background: var(--underline);
+    transition: width 0.6s;
+  }
+
+  &:hover::before {
+    width: 100%;
+  }
+}
+
+/* ---------- 图标（内联 SVG 取代原 Font Awesome 字体） ---------- */
+svg {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  fill: currentColor;
+}
+svg.fw {
+  width: 1.25em;
+  text-align: center;
+}
+
+/* ---------- 动画（animation.styl） ---------- */
+@keyframes appear {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes shake {
+  0% { transform: rotate(-15deg); }
+  100% { transform: rotate(15deg); }
+}
+@keyframes slide-fade-in {
+  0% { transform: translate3d(0, -100%, 0); opacity: 0; }
+  100% { transform: none; opacity: 1; }
+}
+
+/* ---------- GlobalLayout（GlobalLayout.vue 全局布局网格） ---------- */
+.GlobalLayout {
+  color: var(--txt);
+  background: var(--bg);
+  background: var(--bg-global);
+  background-attachment: fixed;
+  min-width: $minWidth;
+  width: 100%;
+
+  ::selection {
+    color: var(--bg);
+    background: var(--selection);
+  }
+}
+
+.frame {
+  padding: $headerHeight $floatingSize 0;
+  width: 100%;
+}
+
+.main {
+  // 宽屏上限用 em 表达（≈每行 90 字，随字号缩放不变行宽字符数）
+  max-width: 90em;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: $sideWidth auto $sideWidth;
+  grid-template-rows: auto min-content;
+  grid-template-areas:
+    'drawer center aside'
+    'drawer footer aside';
+  // 折叠时列宽动画（对应 Hexo 版 closeDrawer/closeAside 的内容回填）
+  transition: grid-template-columns 0.6s;
+}
+
+.center,
+.footer {
+  padding: 0 $gap;
+}
+
+.center {
+  grid-area: center;
+  display: grid;
+  grid-template-rows: min-content min-content auto;
+  gap: $gap;
+  padding-top: $gap !important;
+  padding-bottom: $gap !important;
+
+  @media (max-width: $smallWidth) {
+    padding-bottom: 0 !important;
+  }
+  @media (max-width: $smallerWidth) {
+    padding-top: 0 !important;
+  }
+  @media (max-width: $smallestWidth) {
+    gap: 0;
+  }
+
+  .card {
+    margin: 0;
+  }
+}
+
+.drawer {
+  grid-area: drawer;
+  // 侧栏字体链（Hexo fork：思源宋起头，签名逐字覆盖）
+  font-family: var(--font-drawer);
+}
+.aside {
+  grid-area: aside;
+}
+.footer {
+  grid-area: footer;
+}
+
+@media (max-width: $smallWidth) {
+  .main {
+    grid-template-columns: $sideWidth calc(100% - #{$sideWidth});
+    grid-template-rows: auto auto min-content;
+    grid-template-areas:
+      'drawer center'
+      'drawer aside'
+      'drawer footer';
+  }
+  .aside,
+  .center,
+  .footer {
+    padding: 0 0 0 $gap;
+  }
+}
+
+@media (max-width: $smallerWidth) {
+  .main {
+    grid-template-columns: 100%;
+    grid-template-rows: min-content min-content min-content min-content;
+    grid-template-areas:
+      'drawer'
+      'center'
+      'aside'
+      'footer';
+    min-height: auto;
+  }
+  .aside,
+  .center,
+  .footer {
+    padding: 0;
+  }
+}
+
+@media (max-width: $smallestWidth) {
+  .frame {
+    padding: $headerHeight 0 0;
+  }
+}
+
+/* ---------- 左右栏折叠（Hexo 版 :root.closeDrawer / :root.closeAside，每侧一个总开关） ---------- */
+html.close-drawer .Drawer {
+  transform: translateX(-100%);
+}
+html.close-aside .Aside {
+  transform: translateX(100%);
+}
+html.close-drawer .Drawer,
+html.close-aside .Aside {
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (min-width: #{$smallerWidth + 1px}) {
+  html.close-drawer .main {
+    grid-template-columns: 0 auto $sideWidth;
+  }
+  html.close-aside .main {
+    grid-template-columns: $sideWidth auto 0;
+  }
+  html.close-drawer.close-aside .main {
+    grid-template-columns: 0 auto 0;
+  }
+}
+
+@media (max-width: $smallerWidth) {
+  // 窄屏下左右栏是堆叠的通栏，折叠 = 整块隐藏（Hexo 版把抽屉高度收到 0）
+  html.close-drawer .Drawer,
+  html.close-aside .Aside {
+    display: none;
+  }
+}
+
+/* ---------- 卡片骨架（index.styl 的 .card / .caption / .minimize） ---------- */
+.card {
+  background: var(--bg);
+  margin: $gap 0;
+  border-radius: $borderRadius;
+  overflow: hidden;
+  position: relative;
+  transition: background 0.6s, height 0.2s;
+
+  @media (max-width: $smallestWidth) {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  &.mini {
+    height: 2.3rem !important;
+    @media (max-width: $smallestWidth) {
+      height: 3rem !important;
+    }
+  }
+
+  .icon {
+    margin-right: 0.5rem;
+  }
+}
+
+.caption {
+  font-size: 0.8rem;
+  line-height: 1;
+  background: var(--bg);
+  padding: 0.75rem;
+  user-select: none;
+
+  @media (max-width: $smallestWidth) {
+    line-height: 2;
+    background: var(--highlight);
+  }
+}
+
+.minimize {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 0.8rem;
+  line-height: 1;
+  padding: 0.75rem;
+  width: 2.25rem;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+
+  @media (max-width: $smallestWidth) {
+    line-height: 2;
+    width: 100%;
+    text-align: right;
+  }
+
+  svg.minus {
+    display: inline;
+  }
+  svg.plus {
+    display: none;
+  }
+
+  .card.mini & {
+    svg.minus {
+      display: none;
+    }
+    svg.plus {
+      display: inline;
+    }
+  }
+}
+
+/* ---------- Ext 浮层开关（原 Ext.vue 的 v-if + slide-fade 过渡） ---------- */
+.Ext {
+  transform: translate3d(0, -100%, 0);
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+html.ext-portal .Ext,
+html.ext-search .Ext {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+// 两块内容互斥显示（对应原版 Ext.vue 的两个 v-if）
+// html 前缀抬高特异度，避免被组件 scoped 样式（同为 0,2,0 且靠后）反超
+html .Ext .portal,
+html .Ext .search {
+  display: none;
+}
+
+html.ext-portal .Ext .portal {
+  display: grid;
+  animation: appear 0.6s linear;
+}
+
+html.ext-search .Ext .search {
+  display: block;
+  animation: appear 0.6s linear;
+}
+
+/* ---------- markdown 正文（github-markdown-css 的主题化覆盖） ---------- */
+.markdown-body {
+  // 跟随主题而非系统深浅色（包内的 @media (prefers-color-scheme) 变量以后面的声明为准）
+  color-scheme: light;
+  --bgColor-default: transparent;
+  --fgColor-default: #1f2328;
+  --fgColor-muted: var(--txt);
+  --bgColor-muted: var(--highlight);
+  --bgColor-neutral-muted: var(--highlight);
+  --borderColor-default: var(--highlight);
+  --borderColor-muted: var(--highlight);
+  --borderColor-neutral-muted: var(--highlight);
+  --focus-outlineColor: var(--underline);
+  background-color: transparent;
+  // 每行 10 字下限：列再窄也不小于 10em（min() 防止比容器宽时溢出）
+  min-width: min(10em, 100%);
+  // 正文字体链（汇文明朝体 → 上图东观体粗 → Noto Sans SC → 设备字体）
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  color: var(--txt);
+  font-size: 1rem;
+  line-height: $lineHeight;
+
+  a {
+    color: var(--link-markdown);
+    &::before {
+      display: none;
+    }
+  }
+
+  table {
+    color: var(--txt);
+    display: table;
+    width: 100% !important;
+
+    tr {
+      // 70% 不透明，压住底下的壁纸/渐变（Hexo fork 的配色精修）
+      background-color: var(--table-row);
+      &:nth-child(2n) {
+        background-color: var(--table-row-alt);
+      }
+    }
+  }
+
+  img {
+    display: block;
+    max-width: 100%;
+
+    + em {
+      display: block;
+      font-size: 0.75rem;
+      line-height: 2rem;
+      padding: 0 0.625rem;
+      color: var(--txt);
+      background: var(--highlight);
+      font-style: normal;
+    }
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    position: relative;
+    margin-top: $gap;
+    @media (max-width: $smallestWidth) {
+      margin-top: 1.5rem;
+    }
+  }
+
+  // 标题序号（Hexo fork 的 heading-numbers：构建期写 data-num，CSS 展示）
+  :is(h1, h2, h3, h4, h5, h6)[data-num]::before {
+    content: attr(data-num) '. ';
+    font-weight: bolder;
+  }
+
+  // 标题锚点 ¶（对应 VuePress header-anchor；hover 显示）
+  a.header-anchor {
+    position: absolute;
+    left: -0.8em;
+    color: var(--link-markdown);
+    opacity: 0;
+    font-weight: 500;
+
+    &::before {
+      display: none;
+    }
+
+    &:focus {
+      opacity: 1;
+    }
+  }
+
+  :is(h1, h2, h3, h4, h5, h6):hover > a.header-anchor {
+    opacity: 1;
+  }
+
+  // 行内代码跟随主题
+  code {
+    background-color: var(--highlight);
+    color: var(--txt);
+  }
+
+  blockquote {
+    color: var(--txt);
+    border-left-color: var(--underline);
+  }
+
+  hr {
+    background-color: var(--highlight);
+  }
+
+  // 代码块：shiki 双主题（skin-night 时切暗色变量）
+  pre, pre.astro-code {
+    border-radius: 0;
+    margin: 0 calc(#{$gap} * -1);
+    padding-left: $gap;
+    padding-right: $gap;
+    background-color: var(--highlight) !important;
+  }
+
+  code[data-theme], span[data-theme] {
+    // defaultColor: 'light' 时颜色来自内联样式；skin-night 用 dark 变量覆盖（规则见下方 html.skin-night）
+  }
+}
+
+html.skin-night {
+  .markdown-body {
+    color-scheme: dark;
+    --fgColor-default: var(--txt);
+    --bgColor-default: transparent;
+  }
+
+  .markdown-body {
+    pre, pre.astro-code,
+    pre span, pre.astro-code span {
+      color: var(--shiki-dark) !important;
+      background-color: transparent !important;
+    }
+    pre, pre.astro-code {
+      background-color: var(--highlight) !important;
+    }
+    pre .line, pre.astro-code .line {
+      color: inherit;
+    }
+  }
+}
+
+/* ---------- 移动端文本适配（Hexo fork ≤1023px 那批规则，断点改用 em：64em = 1024px@16px） ---------- */
+@media (max-width: 64em) {
+  .markdown-body {
+    // 每行 10 字下限之下的兜底：长词/URL 才允许任意断行
+    p, li, h1, h2, h3, h4, h5, h6, a, td, th, code {
+      overflow-wrap: anywhere;
+    }
+
+    pre, pre.astro-code {
+      margin: 0;
+      padding-left: 0.5em;
+      padding-right: 0.5em;
+      white-space: pre-wrap;
+    }
+  }
+}
+@media (min-width: 64.01em) {
+  // ≥1024px 才保持 keep-all（Hexo fork：表格 word-break 只在宽屏生效）
+  .markdown-body {
+    p {
+      word-break: keep-all;
+    }
+  }
+}
+
+/* ---------- 其他 ---------- */
+// 阅读模式锁滚动（原 GlobalLayout.fixed + Article.isReading）
+html.readmode {
+  body {
+    overflow: hidden;
+  }
+}
+
+// 看板娘开关（Hexo settings.transfigure → live2d-widget 的容器）
+html.NO_LIVE2D {
+  #waifu,
+  #live2d-widget {
+    display: none !important;
+  }
+}
+
+// 隐藏播放器（Hexo settings.hideplayer）
+html.hide-player .Biliplayer {
+  display: none !important;
+}

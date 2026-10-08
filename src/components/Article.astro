@@ -1,0 +1,532 @@
+---
+// 文章/页面正文 —— 对应 Article.vue
+// fix 负边距撑满、meta 居中标题、tail（结束线/好友/版权/标签/上下篇）、阅读模式
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site, qrcodes, license } from '../config';
+import type { PostMeta } from '../lib/posts';
+
+interface Props {
+  title: string;
+  isPost: boolean;
+  meta?: PostMeta;
+  prev?: PostMeta | null;
+  next?: PostMeta | null;
+}
+
+const { title, isPost, meta, prev, next } = Astro.props;
+const withEn = site.languages.includes('en-US');
+const permalink = site.url.replace(/\/$/, '') + Astro.url.pathname;
+---
+
+<div class:list={['Article', 'card', 'fix']}>
+  <div class="caption">
+    <span class="icon"><Icon name="file" fw /></span>
+    <T zh={zhCN.article.caption} en={withEn ? enUS.article.caption : undefined} />
+    {
+      !isPost && (
+        <span class="page-pv" title={zhCN.article.viewcount}>
+          <Icon name="eye" fw /> <span id="busuanzi_value_page_pv">∞</span>
+        </span>
+      )
+    }
+  </div>
+  <div class="inner">
+    <div class:list={['meta', !isPost && 'page-meta']}>
+      <div class="meta-title">{title}</div>
+      {
+        isPost && meta && (
+          <div class="meta-info">
+            <div class="info-date">
+              <Icon name="calendar-alt" fw /> {meta.date}
+            </div>
+            <div class="info-updated">
+              <Icon name="calendar-check" fw /> {meta.updated}
+            </div>
+            {meta.categories.length > 0 && (
+              <div class="info-categories">
+                <Icon name="folder-open" fw />
+                {meta.categories.map((cate, i) => (
+                  <>
+                    {i !== 0 && <span>&nbsp;,</span>}
+                    <a href={`/categories/${encodeURIComponent(cate)}/`}>{cate}</a>
+                  </>
+                ))}
+              </div>
+            )}
+            <div class="info-wordcount">
+              <Icon name="file-word" fw /> {meta.wordcount >= 1000 ? Math.round(meta.wordcount / 100) / 10 + 'k' : meta.wordcount}
+            </div>
+            <div class="info-min2read">
+              <Icon name="stopwatch" fw />
+              <T
+                zh={zhCN.article.minuteUnit.replace('[:time:]', String(meta.min2read))}
+                en={withEn ? enUS.article.minuteUnit.replace('[:time:]', String(meta.min2read)) : undefined}
+              />
+            </div>
+            <div class="info-viewcount" title={zhCN.article.viewcount}>
+              <Icon name="eye" fw /> <span id="busuanzi_value_page_pv">∞</span>
+            </div>
+          </div>
+        )
+      }
+    </div>
+
+    {
+      isPost && meta && (
+        <blockquote class="post-hint">
+          <T
+            zh={zhCN.article.hint
+              .replace('[:words:]', String(meta.wordcount))
+              .replace('[:min:]', String(meta.min2read))}
+            en={withEn
+              ? enUS.article.hint
+                  .replace('[:words:]', String(meta.wordcount))
+                  .replace('[:min:]', String(meta.min2read))
+              : undefined}
+          />
+        </blockquote>
+      )
+    }
+
+    <div class="markdown-body" data-pagefind-body>
+      <slot />
+    </div>
+
+    {
+      isPost && (
+        <div class="tail">
+          <div class="ending">
+            <T zh={zhCN.article.ending.left} en={withEn ? enUS.article.ending.left : undefined} />
+            <Icon name="dot-circle" fw />
+            <T zh={zhCN.article.ending.right} en={withEn ? enUS.article.ending.right : undefined} />
+          </div>
+
+          <div class="friend">
+            <div>
+              <T zh={zhCN.article.friend.text} en={withEn ? enUS.article.friend.text : undefined} />
+            </div>
+            {qrcodes.length > 0 && (
+              <>
+                <div class="button">
+                  <T zh={zhCN.article.friend.button} en={withEn ? enUS.article.friend.button : undefined} />
+                </div>
+                <div class="qrcode">
+                  {qrcodes.map((item) => (
+                    <div>
+                      <img src={item.path} alt={item.text['zh-CN']} />
+                      <div>
+                        <T zh={item.text['zh-CN']} en={withEn ? item.text['en-US'] : undefined} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div class="license">
+            <div class="license-frame">
+              <div>
+                <T zh={zhCN.article.license.author} en={withEn ? enUS.article.license.author : undefined} />
+                <a target="_blank" href="/">
+                  {site.author}
+                </a>
+              </div>
+              <div>
+                <T zh={zhCN.article.license.link} en={withEn ? enUS.article.license.link : undefined} />
+                <a target="_blank" href={permalink}>
+                  {permalink}
+                </a>
+              </div>
+              <div>
+                <T zh={zhCN.article.license.copyright} en={withEn ? enUS.article.license.copyright : undefined} />
+                <a target="_blank" href={license.url}>
+                  {license.name}
+                </a>
+              </div>
+            </div>
+            <div class="notice">
+              <T
+                zh={zhCN.article.license.notice.text.replace(
+                  '[:license:]',
+                  `<a target="_blank" href="${license.url}">${zhCN.article.license.notice.name}</a>`,
+                )}
+                en={withEn
+                  ? enUS.article.license.notice.text.replace(
+                      '[:license:]',
+                      `<a target="_blank" href="${license.url}">${enUS.article.license.notice.name}</a>`,
+                    )
+                  : undefined}
+                html
+              />
+            </div>
+          </div>
+
+          {meta && meta.tags.length > 0 && (
+            <div class="tags">
+              {meta.tags.map((tag) => (
+                <a href={`/tags/${encodeURIComponent(tag)}/`}># {tag}</a>
+              ))}
+            </div>
+          )}
+
+          <div class="pn">
+            {prev && (
+              <a class="prev" href={prev.url} title={zhCN.article.prev + prev.title}>
+                <span class="pn-label">
+                  <T zh={zhCN.article.prev} en={withEn ? enUS.article.prev : undefined} />
+                </span>
+                {prev.title}
+              </a>
+            )}
+            {next && (
+              <a class="next" href={next.url} title={zhCN.article.next + next.title}>
+                <span class="pn-label">
+                  <T zh={zhCN.article.next} en={withEn ? enUS.article.next : undefined} />
+                </span>
+                {next.title}
+              </a>
+            )}
+          </div>
+        </div>
+      )
+    }
+
+    <div class="readmode">
+      <span class="m-zh open">开启阅读模式</span><span class="m-en open">Enable Read Mode</span>
+      <span class="m-zh close">关闭阅读模式</span><span class="m-en close">Disable Read Mode</span>
+      <Icon name="book-open" class="open" />
+      <Icon name="book" class="close" />
+    </div>
+  </div>
+</div>
+
+<style lang="scss">
+
+  .Article.fix {
+    margin: -50vh calc(-50vw + 50%);
+    padding: 50vh calc(50vw - 50%);
+    background: none;
+
+    @media (max-width: $smallestWidth) {
+      margin: 0;
+      padding: 0;
+    }
+  }
+
+  // 阅读模式（原 .Article.isReading + GlobalLayout.fixed）
+  :global(html.readmode) .Article {
+    z-index: 999999998;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border-radius: 0;
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: var(--header-bg);
+    transition: none;
+
+    :global(img) {
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .caption,
+    .inner {
+      max-width: $readingWidth;
+      margin: 0 auto;
+    }
+  }
+
+  .caption {
+    border-radius: $borderRadius $borderRadius 0 0;
+    display: flex;
+    align-items: center;
+
+    .page-pv {
+      margin-left: auto;
+      cursor: help;
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    @media (max-width: $smallestWidth) {
+      border-radius: 0;
+    }
+  }
+
+  .inner {
+    position: relative;
+    background: var(--bg);
+    border-radius: 0 0 $borderRadius $borderRadius;
+    padding: $gap;
+
+    @media (max-width: $smallestWidth) {
+      border-radius: 0;
+      padding: 1rem;
+    }
+  }
+
+  .meta {
+    text-align: center;
+    margin-bottom: $gap * 1.75;
+
+    @media (max-width: $smallestWidth) {
+      margin-bottom: 1.25rem;
+    }
+
+    &.page-meta {
+      margin-bottom: calc(1rem + #{$gap});
+      @media (max-width: $smallestWidth) {
+        margin-bottom: 1rem;
+      }
+    }
+  }
+
+  .meta-title {
+    font-size: 3rem;
+    line-height: 1.5;
+    padding-bottom: 1rem;
+    border-bottom: 0.25rem solid var(--highlight);
+    // Hexo fork 的配色精修：标题不再直接用 --txt/--link
+    color: var(--post-title);
+
+    @media (max-width: $smallestWidth) {
+      font-size: 1.75rem;
+      padding-bottom: 0.5rem;
+    }
+  }
+
+  .meta-info {
+    line-height: 2;
+    padding-top: 0.5rem;
+    user-select: none;
+
+    > div {
+      display: inline-block;
+      margin: 0 0.5rem;
+    }
+
+    a {
+      color: var(--post-categories);
+      font-weight: 666;
+    }
+  }
+
+  // 字数提示行（Hexo fork 的 post.hint：绿色 info 引用盒）
+  .post-hint {
+    margin: $gap * 2 0;
+    padding: $gap * 0.5 $gap $gap * 0.5 $gap * 0.75;
+    border-inline-start: $gap * 0.5 solid;
+    border-radius: $borderRadius;
+    border-color: #7aa874;
+    background-color: rgba(122, 168, 116, 0.1);
+    font-size: 0.9em;
+    line-height: 1.5;
+    user-select: text;
+  }
+
+  .tail {
+    user-select: none;
+    margin-top: $gap * 1.75;
+
+    @media (max-width: $smallestWidth) {
+      margin-top: 1.5rem;
+    }
+  }
+
+  .ending {
+    color: var(--article-ending);
+    border-top: 0.5rem dashed;
+    display: grid;
+    grid-template-columns: auto 2rem auto;
+    font-size: 1.25rem;
+    justify-content: center;
+    justify-items: center;
+    line-height: 2.5;
+    padding: 0 $gap;
+    margin: 0 $gap * -1;
+
+    @media (max-width: $smallerWidth) {
+      font-size: 1rem;
+    }
+    @media (max-width: $smallestWidth) {
+      grid-template-columns: auto 1.25rem auto;
+      font-size: 0.8rem;
+    }
+
+    :global(svg) {
+      line-height: 2.5;
+    }
+  }
+
+  .friend {
+    text-align: center;
+    margin: $gap * 0.5 0 calc(#{$gap * 0.5} - 0.5rem);
+    line-height: 1.5;
+
+    @media (max-width: $smallestWidth) {
+      margin: 1rem 0;
+    }
+  }
+
+  .friend .button {
+    width: fit-content;
+    margin: 1rem auto 0.75rem;
+    padding: 1rem;
+    border-radius: $borderRadius;
+    background: var(--txt);
+    color: var(--bg);
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.6s, filter 0.6s;
+
+    &:hover {
+      filter: invert(0.1);
+    }
+  }
+
+  .friend .qrcode {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+    overflow: hidden;
+    transition: background 0.6s, height 0.5s;
+    position: relative;
+
+    &.mini {
+      height: 0 !important;
+    }
+
+    > div {
+      margin: 0 0.5rem 1rem 0.5rem;
+      line-height: 1;
+
+      &:hover > div {
+        animation: shake 0.1s linear infinite;
+      }
+    }
+  }
+
+  .license {
+    width: 100%;
+    background: var(--article-license-bg);
+    overflow-y: hidden;
+    overflow-x: auto;
+    margin: $gap * 0.5 0;
+    font-size: 0.95rem;
+  }
+
+  .license .license-frame {
+    line-height: 2;
+    padding: 0.5rem 0.25rem 0.5rem 0.75rem;
+    white-space: nowrap;
+    border-left: 0.25rem solid var(--link);
+    user-select: text;
+
+    span {
+      display: inline-block;
+      &:first-child {
+        margin-right: 0.25rem;
+        font-weight: bold;
+      }
+    }
+  }
+
+  .license .notice {
+    padding: 0.25rem 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    user-select: text;
+  }
+
+  .tags {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    line-height: 1.5;
+    margin-top: calc(#{$gap * 0.5} + 0.25rem);
+    margin-bottom: $gap * 0.5;
+
+    > :global(a) {
+      margin: 0.5rem;
+      margin-top: 0;
+    }
+  }
+
+  .pn {
+    display: grid;
+    grid-template-columns: repeat(2, calc(50% - 0.5rem));
+    grid-template-areas: 'prev next';
+    gap: 1rem;
+
+    @media (max-width: $smallestWidth) {
+      grid-template-columns: 100%;
+      grid-template-areas:
+        'prev'
+        'next';
+    }
+
+    :global(a) {
+      line-height: 1.6;
+    }
+
+    .prev {
+      grid-area: prev;
+      @media (max-width: $smallestWidth) {
+        text-align: center;
+      }
+    }
+
+    .next {
+      grid-area: next;
+      text-align: right;
+
+      @media (max-width: $smallestWidth) {
+        text-align: center;
+      }
+
+      &::before {
+        left: auto;
+        right: 0;
+      }
+    }
+  }
+
+  .readmode {
+    position: absolute;
+    top: -1.55rem;
+    right: 0.75rem;
+    cursor: pointer;
+    color: var(--underline);
+    line-height: 1;
+    opacity: 0.5;
+    font-size: 0.7rem;
+    user-select: none;
+
+    @media (max-width: $smallestWidth) {
+      display: none;
+    }
+
+    .close {
+      display: none;
+    }
+
+    :global(html.readmode) & {
+      .open {
+        display: none;
+      }
+      .close {
+        display: inline;
+      }
+    }
+  }
+</style>

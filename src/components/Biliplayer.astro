@@ -1,0 +1,467 @@
+---
+// B 站 BGM 播放器 —— 移植自 Hexo fork 的 biliplayer part
+// 桌面住右栏；≤1016px 由脚本搬进一言卡片（hitokoto-bgm），歌单/倒计时/自动切歌全按原逻辑
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { biliplayer } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Biliplayer card bili-player" data-playlist={biliplayer.playlist} data-countdown={String(biliplayer.countdown)}>
+  <div class="caption player-caption">
+    <span class="caption-text">
+      <T zh={zhCN.biliplayer.caption} en={withEn ? enUS.biliplayer.caption : undefined} />
+    </span>
+    <span class="ops">
+      <button type="button" class="off-btn" aria-label="Close">×</button>
+    </span>
+  </div>
+  <div class="stage">
+    <div class="mask HIDE">
+      <span class="tip">
+        <T zh={zhCN.biliplayer.willplay} en={withEn ? enUS.biliplayer.willplay : undefined} />
+      </span>
+      <b class="num"></b>
+      <button type="button" class="cancel">
+        <T zh={zhCN.biliplayer.cancel} en={withEn ? enUS.biliplayer.cancel : undefined} />
+      </button>
+      <button type="button" class="start">
+        <T zh={zhCN.biliplayer.play} en={withEn ? enUS.biliplayer.play : undefined} />
+      </button>
+    </div>
+  </div>
+  <div class="nav">
+    <button type="button" class="prev">
+      <T zh={zhCN.biliplayer.prev} en={withEn ? enUS.biliplayer.prev : undefined} />
+    </button>
+    <span class="now"></span>
+    <button type="button" class="next">
+      <T zh={zhCN.biliplayer.next} en={withEn ? enUS.biliplayer.next : undefined} />
+    </button>
+  </div>
+  <span class="nopause">
+    <T zh={zhCN.biliplayer.nopause} en={withEn ? enUS.biliplayer.nopause : undefined} />
+  </span>
+</div>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .bili-player {
+    user-select: none;
+    width: 100%;
+    border: 1px solid var(--highlight);
+    background: var(--bg);
+    animation: appear 0.6s ease;
+
+    @keyframes biliplayer-num {
+      0% {
+        transform: scale(1.6);
+        opacity: 0;
+      }
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+  }
+
+  .player-caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0;
+    font-size: 0.8em;
+    line-height: 2.5;
+    background: var(--highlight);
+
+    > .caption-text {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    > .ops {
+      flex: none;
+      padding-right: 0.25rem;
+    }
+  }
+
+  .bili-player button {
+    cursor: pointer;
+    padding: 0 $gap * 0.5;
+    border: none;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    min-width: 3.5em;
+    min-height: 1.9em;
+    text-align: center;
+
+    &:hover {
+      color: var(--link);
+    }
+  }
+
+  .start,
+  .cancel {
+    border: 1px solid var(--link) !important;
+    border-radius: $gap * 0.5;
+  }
+
+  .stage {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    background: #000;
+
+    > iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  }
+
+  .mask {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: $gap;
+    background: var(--bg);
+    text-align: center;
+    font-size: 0.85em;
+
+    > .start {
+      display: none;
+    }
+    &.waiting .num {
+      display: none;
+    }
+    &.manual .start {
+      display: inline-block;
+    }
+    &.manual {
+      .tip,
+      .num,
+      .cancel {
+        display: none;
+      }
+    }
+    > .num {
+      display: block;
+      font-size: 2.2em;
+      line-height: 1.4;
+      animation: biliplayer-num 0.9s ease;
+    }
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    padding: $gap * 0.5 0;
+    font-size: 0.75em;
+    background: var(--highlight);
+
+    > .now {
+      flex: 1 1 auto;
+      min-width: 0;
+      padding: 0 $gap * 0.5;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+    > .prev,
+    > .next {
+      flex: none;
+    }
+  }
+
+  // 嵌的是 B 站外链播放器，它不向父页面报状态，暂停管不住——面板里把
+  // 这件事讲明白，免得访客点了暂停还等它停
+  .nopause {
+    display: block;
+    padding: $gap * 0.5 $gap $gap;
+    font-size: 0.7em;
+    line-height: 1.6;
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  .HIDE {
+    display: none !important;
+  }
+</style>
+
+<script>
+  // 逐行移植自 Hexo fork 的 source/asset/js/part/biliplayer.js
+  import { biliplayer } from '../config';
+  import { patchSave, getSave } from '../lib/client/storage';
+
+  const el = document.querySelector<HTMLElement>('.bili-player');
+  if (el) {
+    let list: Array<{ bvid: string; title: string; duration?: number; page?: number }> = [];
+    let index = 0;
+    let countdown = Number(el.dataset.countdown) || 3;
+    let ticker = 0;
+    let watcher = 0;
+    let mounted = false;
+    let pageLoaded = false;
+    let armed = false;
+    let startedAt = 0;
+    let deadline = 0;
+
+    const SESSION_KEY = 'biliplayer:index';
+
+    const readSession = (): number | null => {
+      try {
+        const raw = window.sessionStorage.getItem(SESSION_KEY);
+        if (raw === null) return null;
+        const n = Number(raw);
+        return Number.isInteger(n) && n >= 0 ? n : null;
+      } catch {
+        return null;
+      }
+    };
+
+    const writeSession = (n: number) => {
+      try {
+        window.sessionStorage.setItem(SESSION_KEY, String(n));
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const q = <T extends Element>(sel: string) => el!.querySelector<T>(sel);
+    const current = () => list[index];
+    const srcOf = (item: { bvid: string; page?: number }, at: number) =>
+      'https://player.bilibili.com/player.html?bvid=' + item.bvid +
+      '&page=' + (item.page || 1) + '&danmaku=0&high_quality=1&autoplay=1' +
+      (at > 0 ? '&t=' + at : '');
+
+    const frame = () => {
+      let f = q<HTMLIFrameElement>('.stage iframe');
+      if (!f) {
+        f = document.createElement('iframe');
+        f.setAttribute('allowfullscreen', 'true');
+        f.setAttribute('scrolling', 'no');
+        q('.stage')!.insertBefore(f, q('.mask'));
+      }
+      return f;
+    };
+
+    const mask = (mode: string | null) => {
+      const m = q<HTMLElement>('.mask')!;
+      ['counting', 'manual', 'waiting'].forEach((c) => m.classList.remove(c));
+      mode && m.classList.add(mode);
+      mode ? m.classList.remove('HIDE') : m.classList.add('HIDE');
+    };
+
+    const render = () => {
+      const item = current();
+      if (!item) return;
+      q<HTMLElement>('.now')!.innerText = item.title;
+    };
+
+    // 播放器不会往父窗口发任何消息，外层既拿不到 ended 也拿不到进度。
+    // 只认一个本地截止时间，短周期 interval 对表（后台标签页定时器被钳制时最坏迟到一 tick）。
+    const watch = () => {
+      window.clearInterval(watcher);
+      watcher = 0;
+      if (!deadline) return;
+      watcher = window.setInterval(() => {
+        if (Date.now() < deadline) return;
+        window.clearInterval(watcher);
+        watcher = 0;
+        step(1);
+      }, 2000);
+    };
+
+    // 顶层文档有过真实交互后，新挂的 B 站 iframe 才有声；否则静音起播，
+    // 首次手势时用 &t= 原位重挂接上进度。
+    const audible = () => (navigator.userActivation ? !!navigator.userActivation.hasBeenActive : true);
+
+    const onGesture = () => {
+      window.removeEventListener('pointerdown', onGesture, true);
+      window.removeEventListener('keydown', onGesture, true);
+      armed = false;
+      if (mounted) play(elapsed());
+    };
+
+    const armGesture = () => {
+      if (armed || audible()) return;
+      armed = true;
+      window.addEventListener('pointerdown', onGesture, true);
+      window.addEventListener('keydown', onGesture, true);
+    };
+
+    const elapsed = () => (mounted ? Math.max(0, Math.round((Date.now() - startedAt) / 1000)) : 0);
+
+    const play = (at = 0) => {
+      const item = current();
+      if (!item) return;
+      window.clearInterval(ticker);
+      ticker = 0;
+      const from = Math.min(Number(at) || 0, Math.max(0, (item.duration || 0) - 2));
+      frame().src = srcOf(item, from);
+      startedAt = Date.now() - from * 1000;
+      deadline = item.duration ? Date.now() + (item.duration - from) * 1000 + 4000 : 0;
+      mounted = true;
+      mask(null);
+      render();
+      watch();
+      armGesture();
+    };
+
+    const stop = () => {
+      q<HTMLIFrameElement>('.stage iframe')?.remove();
+      window.clearInterval(ticker);
+      ticker = 0;
+      window.clearInterval(watcher);
+      watcher = 0;
+      if (armed) {
+        window.removeEventListener('pointerdown', onGesture, true);
+        window.removeEventListener('keydown', onGesture, true);
+        armed = false;
+      }
+      mounted = false;
+      deadline = 0;
+      mask('manual');
+    };
+
+    const begin = () => {
+      let left = countdown;
+      mask('counting');
+      q<HTMLElement>('.num')!.innerText = String(left);
+      ticker = window.setInterval(() => {
+        left -= 1;
+        if (left <= 0) {
+          window.clearInterval(ticker);
+          ticker = 0;
+          play();
+          return;
+        }
+        q<HTMLElement>('.num')!.innerText = String(left);
+      }, 1000);
+    };
+
+    const step = (delta: number) => {
+      if (!list.length) return;
+      index = (index + delta + list.length) % list.length;
+      writeSession(index);
+      mounted ? play() : render();
+    };
+
+    const autoplayOn = () => {
+      const saved = getSave().autoplay;
+      return saved === undefined ? true : !!saved;
+    };
+
+    const start = () => {
+      if (!el || !list.length || mounted || ticker) return;
+      autoplayOn() ? begin() : stop();
+    };
+
+    const ready = () => {
+      pageLoaded = true;
+      start();
+    };
+
+    const pick = () => {
+      const saved = readSession();
+      if (saved !== null && saved < list.length) {
+        index = saved;
+      } else {
+        index = Math.floor(Math.random() * list.length);
+        writeSession(index);
+      }
+    };
+
+    // 设置里的"隐藏播放器"：flag = 要藏起来。手机版播放器接在一言卡里，
+    // 藏起来就得把版面还原（CSS 靠 hitokoto-bgm-restored 判断）
+    const hidden = (flag: boolean) => {
+      if (!el) return;
+      const panel = el.closest<HTMLElement>('.Hitokoto');
+      panel && panel.classList.toggle('hitokoto-bgm-restored', flag);
+      if (flag) {
+        stop();
+        el.classList.add('HIDE');
+      } else {
+        el.classList.remove('HIDE');
+      }
+    };
+
+    q<HTMLButtonElement>('.cancel')!.onclick = () => {
+      patchSave({ autoplay: false });
+      document.dispatchEvent(new CustomEvent('mustom:autoplay', { detail: false }));
+      syncAutoplayRow();
+    };
+    q<HTMLButtonElement>('.start')!.onclick = () => {
+      patchSave({ autoplay: true });
+      document.dispatchEvent(new CustomEvent('mustom:autoplay', { detail: true }));
+      syncAutoplayRow();
+    };
+    q<HTMLButtonElement>('.prev')!.onclick = () => step(-1);
+    q<HTMLButtonElement>('.next')!.onclick = () => step(1);
+    q<HTMLButtonElement>('.off-btn')!.onclick = () => hidden(true);
+
+    function syncAutoplayRow() {
+      document
+        .querySelector<HTMLElement>('.Settings [data-setting="autoplay"]')
+        ?.classList.toggle('active', autoplayOn());
+    }
+
+    // ≤1016px 时搬进一言卡片（对应 Hexo main.js 的 bgm 搬移），宽屏搬回右栏
+    const mq = window.matchMedia('(max-width: 1016px)');
+    const asideHome = el.parentElement;
+    let asideNext: ChildNode | null = asideHome ? el.nextSibling : null;
+    const relocate = () => {
+      const panel = document.querySelector<HTMLElement>('.Hitokoto .inner');
+      if (mq.matches && panel) {
+        const pic = panel.querySelector<HTMLElement>('.after');
+        pic ? panel.insertBefore(el, pic) : panel.appendChild(el);
+        panel.closest<HTMLElement>('.Hitokoto')?.classList.add('hitokoto-bgm');
+      } else if (asideHome) {
+        asideHome.insertBefore(el, asideNext);
+        document.querySelector<HTMLElement>('.Hitokoto')?.classList.remove('hitokoto-bgm');
+      }
+    };
+    mq.addEventListener('change', relocate);
+    relocate();
+
+    document.addEventListener('mustom:player', (e) => {
+      hidden(!!(e as CustomEvent<boolean>).detail);
+    });
+    document.addEventListener('mustom:autoplay', (e) => {
+      if (!(e as CustomEvent<boolean>).detail) stop();
+      else if (!mounted && !ticker) start();
+    });
+    document.documentElement.classList.contains('hide-player') && hidden(true);
+
+    fetch(el.dataset.playlist!)
+      .then((r) => r.json())
+      .then((data) => {
+        list = (data && data.items) || [];
+        if (!list.length) {
+          el.classList.add('HIDE');
+          return;
+        }
+        pick();
+        render();
+        pageLoaded ? start() : mask('waiting');
+      })
+      .catch(() => el.classList.add('HIDE'));
+  }
+</script>

@@ -1,0 +1,44 @@
+---
+// 右栏 —— 对应 Aside.vue（Panel + Biliplayer + Toc；Clustrmaps 未移植）
+import Panel from './Panel.astro';
+import Biliplayer from './Biliplayer.astro';
+import Toc from './Toc.astro';
+import { panels } from '../config';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings?: MarkdownHeading[];
+}
+
+const { headings } = Astro.props;
+---
+
+<div class="Aside">
+  {panels.categories && <Panel mode="categories" />}
+  {panels.tags && <Panel mode="tags" />}
+  <Biliplayer />
+  {headings && <Toc headings={headings} />}
+</div>
+
+<style lang="scss">
+
+  .Aside {
+    z-index: 940; // 原 zIndex(60)
+    position: fixed;
+    top: $headerHeight;
+    height: calc(100vh - #{$headerHeight});
+    width: $sideWidth;
+    overflow: hidden;
+    transition: transform 0.6s, opacity 0.6s;
+  }
+
+  @media (max-width: $smallWidth) {
+    .Aside {
+      position: relative;
+      top: auto;
+      height: auto;
+      width: 100%;
+      overflow: visible;
+    }
+  }
+</style>

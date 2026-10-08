@@ -1,0 +1,23 @@
+---
+// 底部装饰 —— 对应 Empty.vue（empty 图案纵向平铺）
+import { images } from '../config';
+
+const style = images.empty ? `background-image:url('${images.empty}')` : undefined;
+---
+
+<div class="Empty card" style={style}></div>
+
+<style lang="scss">
+
+  .Empty {
+    background-color: var(--highlight);
+    background-repeat: repeat-y;
+    background-position-x: center;
+    background-size: 96px auto;
+    min-height: $emptyMinHeight;
+
+    @media (max-width: $smallestWidth) {
+      display: none;
+    }
+  }
+</style>

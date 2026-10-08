@@ -1,0 +1,184 @@
+---
+// 页脚 —— 对应 Footer.vue（不蒜子 pv/uv 为客户端注入；总字数构建期算好）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { site, busuanzi, license, theme } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { getPosts, totalWords } from '../lib/posts';
+
+const posts = await getPosts();
+const words = totalWords(posts);
+const buildYear = new Date().getFullYear();
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Footer">
+  <div class="copyright">
+    <T
+      zh={zhCN.footer.copyright
+        .replace('[:start_year:]', String(site.startYear))
+        .replace('[:build_year:]', String(buildYear))
+        .replace('[:author:]', site.author)}
+      en={withEn
+        ? enUS.footer.copyright
+            .replace('[:start_year:]', String(site.startYear))
+            .replace('[:build_year:]', String(buildYear))
+            .replace('[:author:]', site.author)
+        : undefined}
+    />
+  </div>
+  <div class="powered">
+    <T
+      zh={zhCN.footer.powered.replace('[:generator:]', `<a target="_blank" href="https://astro.build" title="Astro">Astro</a>`)}
+      en={withEn ? enUS.footer.powered.replace('[:generator:]', `<a target="_blank" href="https://astro.build" title="Astro">Astro</a>`) : undefined}
+      html
+    />
+  </div>
+  <div class="themed">
+    <T
+      zh={zhCN.footer.themed
+        .replace('[:theme:]', `<a target="_blank" href="${theme.url}" title="${theme.name}">${theme.name}</a>`)
+        .replace('[:author:]', `<a target="_blank" href="${theme.authorUrl}" title="${theme.author}">${theme.author}</a>`)}
+      en={withEn
+        ? enUS.footer.themed
+            .replace('[:theme:]', `<a target="_blank" href="${theme.url}" title="${theme.name}">${theme.name}</a>`)
+            .replace('[:author:]', `<a target="_blank" href="${theme.authorUrl}" title="${theme.author}">${theme.author}</a>`)
+        : undefined}
+      html
+    />
+  </div>
+  <div class="footerCount">
+    <span class="count-item pv" tabindex="0" title={zhCN.footer.pv}>
+      <Icon name="eye" fw />
+      <span id="busuanzi_value_site_pv">∞</span>
+      <em class="tip"><T zh={zhCN.footer.tipPv} en={withEn ? enUS.footer.tipPv : undefined} /></em>
+    </span>
+    <span class="count-item uv" tabindex="0" title={zhCN.footer.uv}>
+      <Icon name="user-tie" fw />
+      <span id="busuanzi_value_site_uv">∞</span>
+      <em class="tip"><T zh={zhCN.footer.tipUv} en={withEn ? enUS.footer.tipUv : undefined} /></em>
+    </span>
+    <span class="count-item wd" tabindex="0" title={zhCN.footer.wd}>
+      <Icon name="file-word" fw /> {words}
+      <em class="tip"><T zh={zhCN.footer.tipWd} en={withEn ? enUS.footer.tipWd : undefined} /></em>
+    </span>
+  </div>
+  <div class="license">
+    <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license}></a>
+  </div>
+</div>
+
+{/* 不蒜子官方脚本（替换自写 JSONP）；脚本不可达时数值保持 ∞ */}
+{busuanzi && (
+  <script is:inline async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" />
+)}
+
+<style lang="scss">
+
+  .Footer {
+    user-select: none;
+    text-align: center;
+    background: var(--bg);
+    padding: 0.75rem calc(1rem + #{$borderRadius}) 0.5rem;
+    border-radius: $borderRadius $borderRadius 0 0;
+    position: relative;
+    overflow: hidden;
+    font-size: 0.9rem;
+
+    @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
+      text-align: left;
+    }
+    @media (max-width: $smallestWidth) {
+      border-top: $borderRadius solid var(--highlight);
+    }
+  }
+
+  .copyright :global(a),
+  .powered :global(a),
+  .themed :global(a) {
+    color: var(--link-markdown);
+    &::before {
+      display: none;
+    }
+  }
+
+  .footerCount {
+    padding-top: 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $gap * 0.5;
+
+    @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
+      position: absolute;
+      right: calc(1rem + #{$borderRadius});
+      top: 0.75rem;
+    }
+
+    > span:not(:first-child) {
+      margin-left: 0.1rem;
+    }
+  }
+
+  // 计数气泡（Hexo fork：hover/focus/触屏 .on 三态说明）
+  .count-item {
+    display: inline-flex;
+    align-items: center;
+    gap: $gap * 0.5;
+    cursor: help;
+    outline: none;
+    position: relative;
+
+    &:hover .tip,
+    &:focus .tip,
+    &.on .tip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + #{$gap * 0.5});
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(90vw, 22em);
+    padding: $gap * 0.5 $gap;
+    font-size: 0.75em;
+    line-height: 1.5;
+    font-style: normal;
+    text-align: left;
+    color: var(--header);
+    background: var(--highlight);
+    border: 1px solid var(--article-ending);
+    border-radius: $borderRadius;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 940;
+  }
+
+  .license {
+    padding-top: 0.5rem;
+    @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
+      position: absolute;
+      right: calc(1rem + #{$borderRadius});
+      top: 3.25rem;
+    }
+
+    .by-nc-sa {
+      display: inline-block;
+      height: $footerLicenseHeight;
+      width: $footerLicenseWidth;
+      background: url('/images/by-nc-sa.svg');
+      background-color: var(--highlight);
+      background-size: cover;
+
+      &::before {
+        display: none;
+      }
+    }
+  }
+</style>

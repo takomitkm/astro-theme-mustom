@@ -1,0 +1,199 @@
+---
+// 时间轴 —— 对应 Timeline.vue（按年分组；标签/分类页复用，传过滤后的分组）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+import type { YearGroup } from '../lib/posts';
+import type { PostMeta } from '../lib/posts';
+
+interface Props {
+  groups: Array<{ year: string; posts: PostMeta[] }>;
+}
+
+const { groups } = Astro.props;
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Timeline card">
+  <div class="caption">
+    <span class="icon"><Icon name="history" fw /></span>
+    <T zh={zhCN.timeline.caption} en={withEn ? enUS.timeline.caption : undefined} />
+  </div>
+  <div class="list">
+    {
+      groups.map((yearPost) => (
+        <div>
+          <div class="list-year">
+            <div class="year-flag">{yearPost.year}</div>
+            <div class="year-total">
+              <T
+                zh={zhCN.timeline.yearTotal.replace('[:total:]', `<strong style="color: var(--underline)">${yearPost.posts.length}</strong>`)}
+                en={withEn ? enUS.timeline.yearTotal.replace('[:total:]', `<strong style="color: var(--underline)">${yearPost.posts.length}</strong>`) : undefined}
+                html
+              />
+            </div>
+          </div>
+          {yearPost.posts.map((post) => (
+            <div class="list-item">
+              <div class="item-date">{post.date}</div>
+              <div class="item-content">
+                <div class="content-title">
+                  <a href={post.url}>{post.title}</a>
+                </div>
+                <div class="content-excerpt markdown-body" set:html={post.excerpt} />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style lang="scss">
+
+  .list {
+    padding: $gap * 1.25 $gap;
+    display: grid;
+    grid-auto-flow: row dense;
+
+    > div .list-item:last-child .item-content:last-child {
+      padding-bottom: 4rem;
+    }
+  }
+
+  .list-year,
+  .list-item {
+    display: grid;
+    grid-template-columns: 8.25rem auto;
+  }
+
+  // 自定义分隔符：坐在两条文章之间的空隙里（不再压在各条的开头），
+  // 横向顶满正文栏宽度 —— 靠 grid-column 1/-1 跨过 8.25rem 的日期列
+  .list :global(.list-item)::after {
+    content: var(--divider, '✟⫘⫘⫘⫘⫘⫘⫘⫘✟');
+    grid-column: 1 / -1;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    font-size: 0.85em;
+    line-height: 2.2;
+    letter-spacing: 0.15em;
+    color: var(--txt);
+    opacity: 0.45;
+    pointer-events: none;
+  }
+
+  // 每个年份分组里的最后一条不画分隔符。注意这里不能再套一层 .list：
+// 外层 .list 会被 Astro 编译成 .list[cid]，写成 .list :global(.list > …)
+// 会变成"嵌套的 .list .list"，永远匹配不上（旧的 :first-child 规则就栽在这）
+.list :global(.list-item:last-child)::after {
+    content: none;
+  }
+
+  .list-year {
+    line-height: 5rem;
+    user-select: none;
+  }
+
+  .year-flag {
+    text-align: center;
+    background: var(--highlight);
+    font-size: 2rem;
+  }
+
+  .year-total {
+    font-size: 0.88rem;
+    line-height: 5.24rem;
+    height: 5rem;
+  }
+
+  .item-date {
+    text-align: right;
+    padding: 1.25rem 1.5rem 0 0;
+    border-right: 0.5rem solid var(--highlight);
+  }
+
+  .year-total,
+  .item-content {
+    padding-left: 1.5rem;
+  }
+
+  .item-content {
+    padding-top: 1.25rem;
+    padding-right: 1rem;
+  }
+
+  .content-title {
+    line-height: 2rem;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+
+    a {
+      &::before {
+        display: none;
+      }
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .content-excerpt {
+    :global(img) {
+      display: none;
+    }
+    :global(p) {
+      margin: 0;
+    }
+  }
+
+  @media (max-width: $smallestWidth) {
+    .list {
+      padding: 1rem 1rem 0 1rem;
+
+      > div .list-item:last-child .item-content:last-child {
+        padding-bottom: 0;
+      }
+    }
+
+    .list-year,
+    .list-item {
+      display: grid;
+      grid-template-columns: auto;
+    }
+
+    .year-flag {
+      font-size: 1.5rem;
+      line-height: 3.5rem;
+    }
+
+    .list-item {
+      margin-bottom: 1rem;
+    }
+
+    .year-total {
+      font-size: 0.88rem;
+      line-height: 3rem;
+      height: 3rem;
+      padding: 0;
+      text-align: center;
+    }
+
+    .item-date {
+      text-align: left;
+      padding: 1rem 0 0 0.75rem;
+      border-right: none;
+      border-left: 0.25rem solid var(--highlight);
+    }
+
+    .item-content {
+      padding: 0.25rem 0 0 0;
+    }
+
+    .content-title {
+      font-size: 1rem;
+    }
+  }
+</style>

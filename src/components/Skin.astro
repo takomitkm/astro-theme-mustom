@@ -1,0 +1,61 @@
+---
+// 皮肤 —— 对应 parts/Skin.vue（色板 + 选中打勾）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { skins, site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const withEn = site.languages.includes('en-US');
+const defaultSkin = site.defaultSkin;
+---
+
+<div class="Skin card">
+  <div class="caption">
+    <span class="icon"><Icon name="tshirt" fw /></span>
+    <T zh={zhCN.skins.caption} en={withEn ? enUS.skins.caption : undefined} />
+  </div>
+  <div class="inner">
+    {
+      skins.map((skin) => (
+        <div
+          class:list={['color', { active: skin.name === defaultSkin }]}
+          data-skin={skin.name}
+          title={withEn ? enUS.skins.names[skin.name] : zhCN.skins.names[skin.name]}
+          style={`background:${skin.color}`}
+        />
+      ))
+    }
+  </div>
+</div>
+
+<style lang="scss">
+
+  .inner {
+    padding: 1rem;
+    display: flex;
+    flex-flow: row;
+
+    // 三套皮肤：容器 padding 1rem×2 + 间隙 1rem×2 = 4rem，故 -4rem 后三等分
+    > div {
+      width: calc((#{$sideWidth} - 4rem) / 3);
+      height: calc((#{$sideWidth} - 4rem) / 3);
+      border-radius: $borderRadius;
+      cursor: pointer;
+      position: relative;
+      line-height: 1;
+      transition: filter 0.2s;
+
+      &:hover {
+        filter: brightness(1.2);
+      }
+      &:not(:last-child) {
+        margin-right: 1rem;
+      }
+
+      // 选中态：原来的 ✔ 圆角标记按要求删了，改用一圈描边表示当前皮肤
+      &.active {
+        box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--underline);
+      }
+    }
+  }
+</style>

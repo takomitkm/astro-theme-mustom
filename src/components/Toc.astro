@@ -1,0 +1,93 @@
+---
+// 目录 —— 对应 parts/Toc.vue（TOC 由构建期 headings 生成，高亮由 layout.ts scrollspy 驱动）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  headings: MarkdownHeading[];
+}
+
+const { headings } = Astro.props;
+const withEn = site.languages.includes('en-US');
+const items = headings.filter((h) => h.depth >= 1 && h.depth <= 3);
+---
+
+<div class="Toc card">
+  <div class="caption">
+    <span class="icon"><Icon name="bookmark" fw /></span>
+    <T zh={zhCN.toc.caption} en={withEn ? enUS.toc.caption : undefined} />
+  </div>
+  <div class="inner">
+    <ul>
+      {
+        items.map((h) => (
+          <li class={`depth-${h.depth}`}>
+            <a href={`#${h.slug}`}>{h.text}</a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</div>
+
+<style lang="scss">
+
+  .Toc {
+    user-select: none;
+
+    @media (max-width: $smallerWidth) {
+      display: none;
+    }
+  }
+
+  .inner {
+    padding: 0.5rem 1rem;
+    max-height: calc(100vh - #{$headerHeight + $gap * 2} - 2.3rem);
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    @media (max-width: $smallerWidth) {
+      max-height: none;
+      overflow-y: hidden;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    li.depth-2 {
+      padding-left: 1rem;
+    }
+    li.depth-3 {
+      padding-left: 2rem;
+    }
+
+    :global(a) {
+      display: block;
+      padding: 0 1rem;
+      margin: 0 -1rem;
+      line-height: 2;
+      color: var(--txt);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background 0.6s, color 0.3s;
+
+      &::before {
+        display: none;
+      }
+
+      &:hover {
+        color: var(--underline);
+      }
+
+      &.active {
+        color: var(--article-language-txt);
+        background: var(--underline);
+      }
+    }
+  }
+</style>

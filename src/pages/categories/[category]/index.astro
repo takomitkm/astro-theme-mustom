@@ -1,0 +1,39 @@
+---
+// 单个分类的文章时间轴 —— 对应 /category/<key>/
+import Base from '../../../layouts/Base.astro';
+import Timeline from '../../../components/Timeline.astro';
+import { getPosts, metaOf, groupByYear } from '../../../lib/posts';
+import { site } from '../../../config';
+import { zhCN, enUS } from '../../../lib/locales';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  const names = new Set<string>();
+  for (const p of posts) for (const c of p.data.categories ?? []) names.add(c);
+  return [...names].map((category) => ({
+    params: { category: encodeURIComponent(category) },
+    props: { category },
+  }));
+}
+
+const { category } = Astro.props;
+const posts = (await getPosts()).filter((p) => (p.data.categories ?? []).includes(category));
+const groups = groupByYear(posts).map((g) => ({ year: g.year, posts: g.posts.map(metaOf) }));
+const withEn = site.languages.includes('en-US');
+const caption = `${withEn ? enUS.catpage.caption : zhCN.catpage.caption} · ${category}`;
+---
+
+<Base title={caption}>
+  <div class="Scope card">
+    <div class="inner">{caption}</div>
+  </div>
+  <Timeline groups={groups} />
+</Base>
+
+<style>
+  .Scope .inner {
+    padding: 1.5rem;
+    text-align: center;
+    font-size: 1.5rem;
+  }
+</style>

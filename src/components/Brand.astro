@@ -1,0 +1,238 @@
+---
+// 名片 —— 对应 parts/Brand.vue（计数构建期算好）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { brand, images, site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { getPosts, nameMap } from '../lib/posts';
+
+const posts = await getPosts();
+const catCount = nameMap(posts, 'categories').length;
+const tagCount = nameMap(posts, 'tags').length;
+const withEn = site.languages.includes('en-US');
+const signature = {
+  'zh-CN': brand.signature['zh-CN'],
+  'en-US': brand.signature['en-US'] ?? brand.signature['zh-CN'],
+};
+---
+
+<div class="Brand card">
+  <div class="caption ifSmallest">
+    <span class="icon"><Icon name="id-card" fw /></span>
+    <T zh={zhCN.brand.caption} en={withEn ? enUS.brand.caption : undefined} />
+  </div>
+  <div class="avatar" style={`background-image:url('${brand.avatar || images.avatar}')`}></div>
+  <div class="inner">
+    <div class="author">{brand.author}</div>
+    <div class="signature">
+      <T zh={signature['zh-CN']} en={withEn ? signature['en-US'] : undefined} />
+    </div>
+    <div class="counter">
+      <span class="count-item" tabindex="0" title={zhCN.brand.pstCount}>
+        <Icon name="archive" fw /> {posts.length}
+        <em class="tip"><T zh={zhCN.brand.tipPstCount} en={withEn ? enUS.brand.tipPstCount : undefined} /></em>
+      </span>
+      <span class="count-item" tabindex="0" title={zhCN.brand.catCount}>
+        <Icon name="folder-open" fw /> {catCount}
+        <em class="tip"><T zh={zhCN.brand.tipCatCount} en={withEn ? enUS.brand.tipCatCount : undefined} /></em>
+      </span>
+      <span class="count-item" tabindex="0" title={zhCN.brand.tagCount}>
+        <Icon name="tags" fw /> {tagCount}
+        <em class="tip"><T zh={zhCN.brand.tipTagCount} en={withEn ? enUS.brand.tipTagCount : undefined} /></em>
+      </span>
+    </div>
+    <div class="contact">
+      {
+        brand.contacts.map((cnt) => (
+          <a target="_blank" href={cnt.link} title={cnt.text}>
+            <Icon name={cnt.icon} fw />
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<style lang="scss">
+
+  .Brand {
+    display: grid;
+    grid-template-areas:
+      'avatar'
+      'inner';
+
+    @media (max-width: $smallerWidth) {
+      grid-template-areas: 'avatar inner';
+      grid-template-columns: 8.125rem auto;
+    }
+    @media (max-width: $smallestWidth) {
+      grid-template-areas:
+        'caption'
+        'avatar'
+        'inner';
+      grid-template-columns: auto;
+    }
+  }
+
+  .caption {
+    grid-area: caption;
+    display: none;
+
+    &.ifSmallest {
+      @media (max-width: $smallestWidth) {
+        display: block;
+      }
+    }
+  }
+
+  .avatar {
+    margin: 1rem;
+    max-width: calc(#{$sideWidth} - 2rem);
+    background-color: var(--highlight);
+    background-size: cover;
+    background-position: center;
+    border-radius: $borderRadius;
+    grid-area: avatar;
+
+    &::before {
+      content: '';
+      display: block;
+      padding-top: 100%;
+    }
+
+    @media (max-width: $smallestWidth) {
+      margin: 1rem auto;
+      width: 50%;
+      max-width: $sideWidth;
+      border-radius: 50%;
+    }
+  }
+
+  .inner {
+    position: relative;
+    grid-area: inner;
+    padding: 1.5rem 1rem 1rem;
+    border-top: 0.25rem dashed var(--article-ending);
+    text-align: center;
+
+    @media (max-width: $smallerWidth) and (min-width: $smallestWidth) {
+      padding: 1rem 1rem 1rem 1.5rem;
+      border-top: none;
+      border-left: 0.25rem dashed var(--article-ending);
+      text-align: left;
+      > div {
+        margin: 0 0 0 -1rem;
+      }
+    }
+
+    > div:not(.author) {
+      padding: 0 0.5rem;
+    }
+  }
+
+  .author {
+    font-size: 1.5rem;
+    line-height: 1;
+    margin: -1rem;
+    padding: 1rem;
+    text-shadow: 1rem 1rem var(--txt-shadow);
+    transform: translate3d(-0.325rem, -0.6rem, 0);
+    font-weight: 666;
+
+    @media (max-width: $smallerWidth) and (min-width: $smallestWidth) {
+      line-height: 2;
+      padding: 0 0 0 1rem;
+      border-radius: $borderRadius;
+    }
+  }
+
+  .signature {
+    margin-top: 1.25rem;
+    line-height: 1.5;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .counter {
+    padding: 0 0.5rem;
+    user-select: none;
+
+    @media (max-width: $smallerWidth) and (min-width: $smallestWidth) {
+      margin-top: 0.5rem !important;
+      line-height: 1;
+    }
+
+    span {
+      display: inline-block;
+      &:not(:last-child) {
+        margin-right: 0.5rem;
+      }
+      &:not(:first-child) {
+        margin-left: 0.25rem;
+      }
+    }
+  }
+
+  // 计数气泡（与热力图出处注释、页脚 pv/uv 同一套：hover/focus/触屏 .on 三态）
+  .count-item {
+    position: relative;
+    cursor: help;
+    outline: none;
+
+    &:hover .tip,
+    &:focus .tip,
+    &.on .tip {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  .tip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + #{$gap * 0.5});
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: min(90vw, 22em);
+    padding: $gap * 0.5 $gap;
+    font-size: 0.75em;
+    line-height: 1.5;
+    font-style: normal;
+    text-align: left;
+    color: var(--header);
+    background: var(--highlight);
+    border: 1px solid var(--article-ending);
+    border-radius: $borderRadius;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+    pointer-events: none;
+    z-index: 940;
+  }
+
+  .contact {
+    margin-top: 0.5rem !important;
+
+    @media (max-width: $smallerWidth) and (min-width: $smallestWidth) {
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+
+    a {
+      display: inline-block;
+      color: var(--txt);
+      font-size: 1.25rem;
+      width: 2.5rem;
+      transition: color 0.6s;
+      text-align: center;
+
+      &:hover {
+        color: var(--underline);
+      }
+      &:not(:last-child) {
+        margin-right: 0.5rem;
+      }
+    }
+  }
+</style>

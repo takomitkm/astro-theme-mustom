@@ -1,0 +1,35 @@
+---
+// 文章页 —— 对应 layouts/Post.vue：正文 + 评论 + 右栏目录
+import Base from '../../layouts/Base.astro';
+import Article from '../../components/Article.astro';
+import Comment from '../../components/Comment.astro';
+import { getPosts, metaOf } from '../../lib/posts';
+import { render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const posts = await getPosts();
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content, headings } = await render(post);
+
+const meta = metaOf(post);
+// 全站文章按日期倒序：prev=更旧一篇，next=更新一篇（原版 prev/next 指向与文案相反，这里按语义修正）
+const all = (await getPosts()).map(metaOf);
+const idx = all.findIndex((m) => m.id === post.id);
+const prev = idx >= 0 && idx + 1 < all.length ? all[idx + 1] : null;
+const next = idx > 0 ? all[idx - 1] : null;
+
+const description =
+  meta.excerpt
+    .replace(/<[^>]+>/g, '')
+    .slice(0, 146) + ' ...';
+---
+
+<Base title={meta.title} description={description} keywords={[...meta.tags, ...meta.categories].join(', ')} headings={headings}>
+  <Article title={meta.title} isPost meta={meta} prev={prev} next={next}>
+    <Content />
+  </Article>
+  <Comment />
+</Base>

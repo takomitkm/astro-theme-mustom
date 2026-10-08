@@ -1,0 +1,38 @@
+---
+/**
+ * 双语文案片段 —— 原版在运行时按 Vuex lang 切换 innerHTML；
+ * 静态化后两份文案同时渲染进 DOM，由 html.lang-en 切换显示（无闪烁、无 JS 依赖）。
+ * site.languages 只有一种语言时只输出单份。
+ */
+import { site } from '../config';
+
+interface Props {
+  zh: string;
+  en?: string;
+  /** 文案含 HTML（图标、强调）时开启 */
+  html?: boolean;
+}
+
+const { zh, en, html = false } = Astro.props;
+const withEn = site.languages.includes('en-US') && en !== undefined;
+---
+
+{
+  html ? (
+    withEn ? (
+      <>
+        <span class="m-zh" set:html={zh} />
+        <span class="m-en" set:html={en} />
+      </>
+    ) : (
+      <span set:html={zh} />
+    )
+  ) : withEn ? (
+    <>
+      <span class="m-zh">{zh}</span>
+      <span class="m-en">{en}</span>
+    </>
+  ) : (
+    <span>{zh}</span>
+  )
+}

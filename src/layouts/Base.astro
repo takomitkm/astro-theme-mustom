@@ -1,0 +1,217 @@
+---
+/**
+ * 基础布局 —— 对应 GlobalLayout.vue + hexo frame.ejs
+ * 结构：Spinner / Progress / Header / Goingto / frame(drawer|center|aside|footer) / Ext
+ */
+import 'github-markdown-css/github-markdown.css';
+import 'katex/dist/katex.min.css';
+import '../styles/global.scss';
+
+import Spinner from '../components/Spinner.astro';
+import Progress from '../components/Progress.astro';
+import Heatmap from '../components/Heatmap.astro';
+import Translate from '../components/Translate.astro';
+import Random from '../components/Random.astro';
+import Header from '../components/Header.astro';
+import GoingTo from '../components/Goingto.astro';
+import Drawer from '../components/Drawer.astro';
+import Aside from '../components/Aside.astro';
+import Footer from '../components/Footer.astro';
+import Empty from '../components/Empty.astro';
+import Ext from '../components/Ext.astro';
+import { site, images, hitokoto, busuanzi } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import type { MarkdownHeading } from 'astro';
+
+interface Props {
+  title?: string;
+  description?: string;
+  keywords?: string;
+  /** 文章页传入 headings，右栏出现目录 */
+  headings?: MarkdownHeading[];
+}
+
+const { title, description, keywords, headings } = Astro.props;
+const fullTitle = title ? `${title} - ${site.title}` : site.title;
+const desc = description ?? `${site.title} - ${site.description}`;
+const kw = keywords ?? site.keywords;
+
+// 客户端运行时配置（原版经 Vue 原型暴露，这里以 JSON 注入）
+const clientConfig = {
+  defaultSkin: site.defaultSkin,
+  busuanzi,
+  searchMax: 10,
+  hitokoto: {
+    api: hitokoto.api,
+    type: hitokoto.type,
+    customs: hitokoto.customs,
+    placeholder: hitokoto.placeholder ?? { word: 'Loading...', from: 'Loading...' },
+  },
+  strings: {
+    notfound: { 'zh-CN': zhCN.notfound.text, 'en-US': enUS.notfound.text },
+    visibilitychange: {
+      away: { 'zh-CN': zhCN.visibilitychange.away, 'en-US': enUS.visibilitychange.away },
+      back: { 'zh-CN': zhCN.visibilitychange.back, 'en-US': enUS.visibilitychange.back },
+    },
+  },
+};
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN" class:list={[`skin-${site.defaultSkin}`, { wallpaper: !!images.wallpaper }]}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <meta name="description" content={desc} />
+    <meta name="keywords" content={kw} />
+    <meta name="author" content={site.author} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={desc} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={site.url.replace(/\/$/, '') + Astro.url.pathname} />
+    {site.verification?.google && <meta name="google-site-verification" content={site.verification.google} />}
+    {site.verification?.baidu && <meta name="baidu-site-verification" content={site.verification.baidu} />}
+    <meta name="theme-color" content="#000000" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/svg+xml" href={images.favicon} />
+    <link rel="apple-touch-icon" href={images.appleTouchIcon} />
+    <title>{fullTitle}</title>
+
+    <!-- 正文字体链（Hexo fork：汇文明朝体 → 上图东观体粗 → Noto Sans SC → 设备字体；侧栏思源宋）
+         media="print" onload 异步加载 + noscript 兜底，外链域名不通时不整页白屏 -->
+    <link rel="preconnect" href="https://cn-font.claude-code-best.win" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://cn-font.claude-code-best.win/packages/hwmct/dist/%E6%B1%87%E6%96%87%E6%98%8E%E6%9C%9D%E4%BD%93/result.css"
+    />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://cn-font.claude-code-best.win/packages/stdgt/dist/%E4%B8%8A%E5%9B%BE%E4%B8%9C%E8%A7%82%E4%BD%93-%E7%B2%97%E4%BD%93/result.css"
+    />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/index.css"
+    />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://cn-font.claude-code-best.win/packages/syst/dist/SourceHanSerifCN/result.css"
+    />
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="https://cn-font.claude-code-best.win/packages/hwmct/dist/%E6%B1%87%E6%96%87%E6%98%8E%E6%9C%9D%E4%BD%93/result.css"
+      />
+      <link
+        rel="stylesheet"
+        href="https://cn-font.claude-code-best.win/packages/stdgt/dist/%E4%B8%8A%E5%9B%BE%E4%B8%9C%E8%A7%82%E4%BD%93-%E7%B2%97%E4%BD%93/result.css"
+      />
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/index.css" />
+      <link
+        rel="stylesheet"
+        href="https://cn-font.claude-code-best.win/packages/syst/dist/SourceHanSerifCN/result.css"
+      />
+    </noscript>
+
+    {site.adScript && <Fragment set:html={site.adScript} />}
+
+    <!--
+      boot：首帧前恢复访客偏好（皮肤/语言/看板娘/播放器）——原版由 Vuex + mixins 在 SPA 启动时完成
+    -->
+    <script is:inline define:vars={{ defaultSkin: site.defaultSkin }}>
+      (function () {
+        try {
+          var s = JSON.parse(localStorage.getItem(btoa(location.host)) || '{}');
+          var h = document.documentElement;
+          var skinOk = ['jshine', 'whiteblack', 'night'].indexOf(s.skin) >= 0;
+          if (s.skin && skinOk && s.skin !== defaultSkin) {
+            h.classList.remove('skin-' + defaultSkin);
+            h.classList.add('skin-' + s.skin);
+          } else if (s.skin && !skinOk) {
+            // 旧访客存过已下架的皮肤（皮肤1/2 等）：回落到默认皮肤
+            h.classList.remove('skin-' + defaultSkin);
+            h.classList.add('skin-' + defaultSkin);
+          }
+          if (s.lang === 'en-US') {
+            h.classList.add('lang-en');
+            h.lang = 'en-US';
+          }
+          if (s.closeDrawer) h.classList.add('close-drawer');
+          if (s.closeAside) h.classList.add('close-aside');
+          if (s.noLive2d) h.classList.add('NO_LIVE2D');
+          if (s.hidePlayer) h.classList.add('hide-player');
+          if (
+            /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i.test(
+              navigator.userAgent,
+            )
+          ) {
+            h.classList.add('is-mobile');
+          }
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
+
+    <script type="application/json" id="mustom-config" is:inline set:html={JSON.stringify(clientConfig)} />
+  </head>
+
+  <body>
+    <div class="GlobalLayout">
+      <Spinner />
+      <Progress />
+      <Header />
+      <GoingTo />
+      <Random />
+      <div class="frame">
+        <div class="main">
+          <div class="drawer">
+            <Drawer />
+          </div>
+          <div class="center">
+            <Heatmap />
+            <Translate />
+            <slot />
+            <Empty />
+          </div>
+          <div class="aside">
+            <Aside headings={headings} />
+          </div>
+          <div class="footer">
+            <div>
+              <Footer />
+            </div>
+          </div>
+        </div>
+      </div>
+      <Ext />
+    </div>
+
+    <!-- 看板娘：live2d-widget 自托管运行时（模型放 public/live2d/umaru/，版权原因不随模板分发，
+         见 https://mx.paul.ren/model/umaru.html 与 SOURCE 说明；设置里可关） -->
+    <link rel="stylesheet" href="/live2d/dist/waifu.css" />
+    <link rel="stylesheet" href="/live2d/site.css" />
+    <script is:inline>window.LIVE2D_BASE = '/live2d/';</script>
+    <!-- loader.js 用顶层 await，必须以 module 加载 -->
+    <script is:inline type="module" src="/live2d/loader.js"></script>
+
+    <script>
+      import { initGlobal } from '../lib/client/global';
+      initGlobal();
+    </script>
+    <script>
+      // PWA：autoUpdate，Service Worker 就绪即接管（Astro 静态页不走 Vite HTML 管线，需手动注册）
+      import { registerSW } from 'virtual:pwa-register';
+      registerSW({ immediate: true });
+    </script>
+  </body>
+</html>

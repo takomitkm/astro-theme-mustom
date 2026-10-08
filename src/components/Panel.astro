@@ -1,0 +1,95 @@
+---
+// 云图面板 —— 对应 parts/Panel.vue（字号/透明度按文章数加权）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { zhCN, enUS } from '../lib/locales';
+import { site } from '../config';
+import { getPosts, nameMap, maxCount } from '../lib/posts';
+
+interface Props {
+  mode: 'categories' | 'tags';
+}
+
+const { mode } = Astro.props;
+const posts = await getPosts();
+const list = nameMap(posts, mode);
+const total = posts.length;
+const max = maxCount(list);
+const withEn = site.languages.includes('en-US');
+
+const normalize = (p: string) => {
+  let s = decodeURIComponent(p);
+  if (s.length > 1) s = s.replace(/\/+$/, '') || '/';
+  return s;
+};
+const here = normalize(Astro.url.pathname);
+---
+
+<div class="Panel">
+  <div class="card">
+    <div class="caption">
+      <a class="panel-index" href={`/${mode}/`}>
+        <span class="icon">
+          <Icon name={mode === 'categories' ? 'folder-open' : 'tags'} fw />
+        </span>
+        <T zh={zhCN.panels.captions[mode]} en={withEn ? enUS.panels.captions[mode] : undefined} />
+      </a>
+    </div>
+    <div class="inner">
+      {
+        list.map((e) => (
+          <a
+            href={e.url}
+            class:list={[{ active: here === normalize(e.url) }]}
+            style={`font-size:${e.posts.length / total + 0.75}rem;opacity:${(e.posts.length / max) * 0.5 + 0.5}`}
+          >
+            {e.name}
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<style lang="scss">
+
+  .Panel {
+    user-select: none;
+  }
+
+// 面板标题即该分类/标签总览页的唯一入口：菜单里的"其他"组删掉后，
+// /categories/ 与 /tags/ 两个总览页就没人链了，把标题做成链接补上这个入口。
+.panel-index {
+    display: block;
+    color: inherit;
+
+    &::before {
+      display: none;
+    }
+
+    .icon {
+      display: inline-block;
+      vertical-align: -0.125em;
+    }
+  }
+
+  .inner {
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.75rem;
+
+    :global(a) {
+      color: var(--txt);
+      display: inline-block;
+      margin: 0.5rem;
+      margin-bottom: 0;
+
+      &.active {
+        color: var(--underline);
+        opacity: 1 !important;
+        &::before {
+          width: 100%;
+        }
+      }
+    }
+  }
+</style>

@@ -1,0 +1,344 @@
+---
+// 直播间常驻轮播页 —— 移植自 Hexo 站点侧 source/live/index.md（线路数组在 config.liveRoutes）
+import Base from '../layouts/Base.astro';
+import Article from '../components/Article.astro';
+import Comment from '../components/Comment.astro';
+import { liveRoutes, site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const withEn = site.languages.includes('en-US');
+const title = withEn ? '直播间' : '直播间';
+---
+
+<Base title={title}>
+  <Article title={title} isPost={false}>
+    <div class="lr">
+      <div class="lr-stage" id="lrStage">
+        <video id="lrVideo" playsinline controls preload="metadata"></video>
+        <div class="lr-ph" id="lrPh">
+          <p class="lr-ph-title" id="lrStatus">视频源未配置</p>
+          <p class="lr-ph-copy" id="lrCopy">
+            config.ts 的 liveRoutes 数组里填媒体地址或第三方播放器对象
+          </p>
+          <a class="lr-go" id="lrGo" href="#" target="_blank" rel="noopener noreferrer" hidden>
+            在 B 站打开直播间
+          </a>
+          <p class="lr-clock"><b id="lrTime">--:--:--</b><i id="lrDate"></i></p>
+        </div>
+        <span class="lr-badge" id="lrBadge" hidden><em></em>LIVE</span>
+      </div>
+      <div class="lr-bar">
+        <select id="lrRoute" aria-label="线路"></select>
+        <button class="lr-like" id="lrLike" type="button">
+          ♥<span id="lrLikeN">0</span>
+        </button>
+      </div>
+      <p class="lr-note">
+        B 站官方能嵌的直播播放器只有
+        <code>www.bilibili.com/blackboard/live/live-activity-h5-player.html?roomid=…&amp;type=room</code>，它不带
+        X-Frame-Options，自带弹幕层；<code>player.bilibili.com</code> 的参数表里没有直播字段，<code>live.bilibili.com</code>
+        又带 X-Frame-Options: SAMEORIGIN，两条都嵌不了直播。想自己写弹幕也不通：<code>getDanmuInfo</code> 要 WBI
+        签名（匿名请求 -352）。点赞数只写进你自己浏览器的 localStorage，没有服务端计数。
+      </p>
+    </div>
+    <script type="application/json" id="live-routes" is:inline set:html={JSON.stringify(liveRoutes)} />
+  </Article>
+  <Comment />
+</Base>
+
+<style>
+  /* 逐字移植自她的 source/live/index.md 页内样式（类名 lr-* 原样保留） */
+  .lr-stage {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    color: #fff;
+    overflow: hidden;
+  }
+  .lr-stage video {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #000;
+  }
+  .lr-frame {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  .lr-ph {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    text-align: center;
+  }
+  .lr-ph-title {
+    font-size: 1.1em;
+    letter-spacing: 0.08em;
+  }
+  .lr-ph-copy {
+    font-size: 0.82em;
+    opacity: 0.6;
+  }
+  .lr-clock {
+    margin-top: 0.6em;
+    font-variant-numeric: tabular-nums;
+  }
+  .lr-clock b {
+    font-size: 2.1em;
+    font-weight: 400;
+    letter-spacing: 0.05em;
+  }
+  .lr-clock i {
+    display: block;
+    font-style: normal;
+    font-size: 0.8em;
+    opacity: 0.55;
+  }
+  .lr-badge {
+    position: absolute;
+    top: 0.7em;
+    left: 0.7em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45em;
+    padding: 0.12em 0.6em;
+    background: var(--link);
+    color: #fff;
+    font-size: 0.78em;
+    letter-spacing: 0.14em;
+  }
+  .lr-badge[hidden] {
+    display: none;
+  }
+  .lr-badge em {
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: #fff;
+    animation: lr-pulse 1.2s infinite;
+  }
+  @keyframes lr-pulse {
+    50% {
+      opacity: 0.15;
+    }
+  }
+  .lr-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1em;
+    padding: 0.7em 0;
+    border-top: 1px solid var(--article-ending);
+  }
+  .lr-bar select {
+    padding: 0.3em 0.5em;
+    background: var(--highlight);
+    color: var(--txt);
+    border: 1px solid var(--article-ending);
+    font: inherit;
+  }
+  .lr-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.3em 1em;
+    background: none;
+    border: 1px solid var(--article-ending);
+    color: var(--txt);
+    font: inherit;
+    cursor: pointer;
+  }
+  .lr-like:hover {
+    border-color: var(--link);
+    color: var(--link);
+  }
+  .lr-note {
+    font-size: 0.82em;
+    opacity: 0.6;
+  }
+  .lr-go {
+    display: inline-block;
+    margin-top: 0.4em;
+    padding: 0.45em 1.4em;
+    background: var(--link);
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: 0.06em;
+  }
+  .lr-go:hover {
+    color: #fff;
+    opacity: 0.88;
+  }
+</style>
+
+<script>
+  // 逐行移植自她的页内脚本；线路来自 config.liveRoutes（经 #live-routes JSON 注入）
+  interface LiveRouteStringArray extends Array<string | { embed?: string; room?: string; name?: string; copy?: string }> {}
+
+  const routes: LiveRouteStringArray = JSON.parse(
+    document.getElementById('live-routes')?.textContent || '[]',
+  );
+
+  const stage = document.getElementById('lrStage')!;
+  const video = document.getElementById('lrVideo') as HTMLVideoElement;
+  const ph = document.getElementById('lrPh')!;
+  const go = document.getElementById('lrGo') as HTMLAnchorElement;
+  const badge = document.getElementById('lrBadge')!;
+  const status = document.getElementById('lrStatus')!;
+  const phCopy = document.getElementById('lrCopy')!;
+  const routeSel = document.getElementById('lrRoute') as HTMLSelectElement;
+  const timeEl = document.getElementById('lrTime')!;
+  const dateEl = document.getElementById('lrDate')!;
+  const likeBtn = document.getElementById('lrLike')!;
+  const likeN = document.getElementById('lrLikeN')!;
+  const KEY = 'live-room-likes';
+  let hls: { destroy(): void } | null = null;
+
+  interface HlsLike {
+    destroy(): void;
+    loadSource(u: string): void;
+    attachMedia(v: HTMLVideoElement): void;
+    on(ev: string, cb: (e: unknown, data: { fatal: boolean; details: string }) => void): void;
+  }
+  interface HlsCtor {
+    new (): HlsLike;
+    isSupported(): boolean;
+    Events: { ERROR: string };
+  }
+
+  const pad = (n: number) => (String(n).length < 2 ? '0' + n : '' + n);
+  const tick = () => {
+    const d = new Date();
+    timeEl.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    dateEl.textContent = d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate());
+  };
+  const hide = () => {
+    ph.style.display = 'none';
+    badge.hidden = false;
+  };
+  const show = (msg: string) => {
+    ph.style.display = '';
+    badge.hidden = true;
+    status.textContent = msg;
+  };
+  let frame: HTMLIFrameElement | null = null;
+  const COPY0 = phCopy.textContent;
+  const unmount = () => {
+    if (frame) {
+      frame.remove();
+      frame = null;
+    }
+    go.hidden = true;
+    phCopy.textContent = COPY0;
+    video.style.display = '';
+  };
+  const mount = (url: string) => {
+    unmount();
+    frame = document.createElement('iframe');
+    frame.className = 'lr-frame';
+    frame.src = url;
+    frame.allow = 'autoplay; fullscreen; encrypted-media';
+    frame.setAttribute('allowfullscreen', '');
+    stage.append(frame);
+    ph.style.display = 'none';
+    badge.hidden = true;
+  };
+  const mountRoom = (src: { room: string; name?: string; copy?: string }) => {
+    unmount();
+    video.style.display = 'none';
+    ph.style.display = '';
+    badge.hidden = true;
+    status.textContent = src.name ?? '';
+    phCopy.textContent = src.copy || '未开播时页面不放播放器，开播后请直接进房间';
+    go.href = 'https://live.bilibili.com/' + src.room;
+    go.hidden = false;
+  };
+  const play = async (src: LiveRouteStringArray[number]) => {
+    if (hls) {
+      hls.destroy();
+      hls = null;
+    }
+    unmount();
+    video.pause();
+    video.removeAttribute('src');
+    if (!src) {
+      show('视频源未配置');
+      return;
+    }
+    if (typeof src !== 'string' && src.room) {
+      mountRoom(src as { room: string; name?: string; copy?: string });
+      return;
+    }
+    if (typeof src !== 'string') {
+      mount(src.embed!);
+      return;
+    }
+    show('正在接入…');
+    const nativeHls = video.canPlayType('application/vnd.apple.mpegurl');
+    if (/\.m3u8(\?|$)/i.test(src) && !nativeHls) {
+      // hls.js 从 esm.sh 运行时拉（URL 变量绕开打包器解析），类型就地声明
+      const hlsUrl = 'https://esm.sh/hls.js@1.5.17';
+      const mod = (await import(/* @vite-ignore */ hlsUrl)) as { default: HlsCtor };
+      const Hls = mod.default;
+      if (!Hls.isSupported()) {
+        show('浏览器不支持 HLS');
+        return;
+      }
+      const inst = new Hls();
+      hls = inst;
+      inst.loadSource(src);
+      inst.attachMedia(video);
+      inst.on(Hls.Events.ERROR, (_e: unknown, data: { fatal: boolean; details: string }) => {
+        if (data.fatal) show('拉流失败：' + data.details);
+      });
+    } else {
+      video.src = src;
+      video.load();
+    }
+  };
+  tick();
+  window.setInterval(tick, 1000);
+  video.addEventListener('canplay', () => {
+    if (video.paused) show('已就绪，点播放');
+  });
+  video.addEventListener('playing', hide);
+  video.addEventListener('error', () => show('播放失败，检查线路地址'));
+  if (!routes.length) {
+    const none = document.createElement('option');
+    none.textContent = '未配置线路';
+    routeSel.append(none);
+    routeSel.disabled = true;
+  } else {
+    routes.forEach((src, i) => {
+      const opt = document.createElement('option');
+      opt.value = String(i);
+      opt.textContent = (typeof src === 'string' ? '' : src.name) || '线路 ' + (i + 1);
+      routeSel.append(opt);
+    });
+    routeSel.addEventListener('change', () => play(routes[Number(routeSel.value)]));
+    play(routes[0]);
+  }
+  likeN.textContent = localStorage.getItem(KEY) || '0';
+  likeBtn.addEventListener('click', () => {
+    const n = Number(localStorage.getItem(KEY) || 0) + 1;
+    localStorage.setItem(KEY, String(n));
+    likeN.textContent = String(n);
+  });
+</script>

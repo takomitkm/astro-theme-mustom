@@ -1,0 +1,52 @@
+// Mustom 设计令牌 —— 移植自 vuepress-theme-mustom styles/palette.styl
+// 由 astro.config.ts 的 Vite additionalData 自动注入每个 SCSS 编译单元，
+// 组件里可直接使用 $gap 等变量，无需手写 @use。
+
+$fontSize: 16px;
+$lineHeight: 2;
+$scrollbarSize: 12px;
+$scrollbarColorFront: #c1c1c1;
+$scrollbarColorBack: #f1f1f1;
+$gap: $fontSize * 2;
+$borderRadius: 4px;
+$floatingSize: $fontSize * 4;
+$maxWidth: 1440px;
+$minWidth: 320px;
+$sideWidth: 260px;
+$realSmallWidth: 628px;
+$realSmallestWidth: 512px;
+$smallWidth: $realSmallWidth + $sideWidth * 2 + $floatingSize * 2; // 1276px
+$smallerWidth: $realSmallWidth + $sideWidth + $floatingSize * 2; // 1016px
+$smallestWidth: $realSmallestWidth + $floatingSize * 2; // 640px
+$largeWidth: $maxWidth + $floatingSize * 2; // 1568px
+$readingWidth: 1024px;
+
+// Spinner
+$spinnerSize: $fontSize * 4;
+$spinnerBorderSize: $fontSize * 0.8;
+
+// Header
+$headerHeight: $fontSize * 4;
+
+// Footer
+$footerLicenseWidth: 120px * 0.75;
+$footerLicenseHeight: 42px * 0.75;
+
+// Empty
+$emptyMinHeight: 128px;
+
+// Hitokoto
+$hitokotoImgWidth: 320px;
+$hitokotoImgHeight: 343px;
+
+@mixin webkit-scrollbar {
+  height: $scrollbarSize;
+  width: $scrollbarSize;
+  background: $scrollbarColorBack;
+}
+
+@mixin webkit-scrollbar-thumb {
+  background: $scrollbarColorFront;
+  border: 0.25 * $scrollbarSize solid $scrollbarColorBack;
+  border-radius: 0.5 * $scrollbarSize;
+}

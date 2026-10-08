@@ -1,0 +1,114 @@
+---
+// 设置 —— 对应 parts/Settings.vue（夜间模式/禁用画布/语言切换）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Settings card">
+  <div class="caption">
+    <span class="icon"><Icon name="cog" fw /></span>
+    <T zh={zhCN.settings.caption} en={withEn ? enUS.settings.caption : undefined} />
+  </div>
+  <div class="inner">
+    <div class="row" data-setting="transfigure">
+      <span class="icon"><Icon name="robot" fw /></span>
+      <T zh={zhCN.settings.names.transfigure} en={withEn ? enUS.settings.names.transfigure : undefined} />
+      <div class="switch"></div>
+    </div>
+    <div class="row" data-setting="hideplayer">
+      <span class="icon"><Icon name="eye-slash" fw /></span>
+      <T zh={zhCN.settings.names.hideplayer} en={withEn ? enUS.settings.names.hideplayer : undefined} />
+      <div class="switch"></div>
+    </div>
+    <div class="row" data-setting="autoplay">
+      <span class="icon"><Icon name="circle-play" fw /></span>
+      <T zh={zhCN.settings.names.autoplay} en={withEn ? enUS.settings.names.autoplay : undefined} />
+      <div class="switch"></div>
+    </div>
+    {
+      withEn && (
+        <div class="row" data-setting="language">
+          <span class="icon">
+            <Icon name="globe-asia" fw />
+          </span>
+          <T zh={zhCN.settings.names.language} en={enUS.settings.names.language} />
+          <div class="switch" />
+        </div>
+      )
+    }
+  </div>
+</div>
+
+<style lang="scss">
+
+  .inner {
+    padding: 0.5rem 0;
+
+    > .row {
+      position: relative;
+      padding: 1rem;
+      line-height: 1;
+      cursor: pointer;
+
+      @media (min-width: $smallestWidth) {
+        &:hover {
+          background: var(--highlight);
+        }
+      }
+
+      &.active .switch {
+        &::before {
+          background: var(--txt);
+          transform: scale(3);
+        }
+        &::after {
+          background: var(--underline);
+          transform: scale(0.5);
+          z-index: 2;
+        }
+      }
+    }
+  }
+
+  .switch {
+    position: absolute;
+    width: 2.5rem;
+    height: 1.5rem;
+    overflow: hidden;
+    top: 0.75rem;
+    right: 0.75rem;
+    border-radius: $borderRadius;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 1.5rem;
+      width: 1.5rem;
+      border-radius: $borderRadius;
+      background: var(--txt);
+      transition: transform 0.2s, background 0.6s;
+      transform: scale(0.5);
+      z-index: 2;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 1.5rem;
+      width: 1.5rem;
+      border-radius: $borderRadius;
+      background: var(--settings-highlight);
+      transition: transform 0.2s, background 0.6s;
+      transform: scale(3);
+      z-index: 1;
+    }
+  }
+</style>

@@ -1,0 +1,190 @@
+---
+// 顶栏 —— 对应 Header.vue + Hexo 版 xdrawer/xaside：
+// 左侧抽屉总开关、门户、站名、搜索、右栏总开关（每侧一个折叠逻辑）
+import Icon from './Icon.astro';
+import T from './T.astro';
+import { header, site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const sitename = {
+  'zh-CN': header.sitename['zh-CN'],
+  'en-US': header.sitename['en-US'] ?? header.sitename['zh-CN'],
+};
+const withEn = site.languages.includes('en-US');
+---
+
+<div class="Header">
+  <button type="button" class="ext xdrawer" data-collapse="drawer" aria-label="Toggle drawer">
+    <Icon name="bars" />
+  </button>
+  {
+    header.portal && (
+      <button type="button" class="ext" data-ext="portal" aria-label="Portals">
+        <Icon name="cube" />
+      </button>
+    )
+  }
+  <div class="sitename">
+    <a href="/" class="sitename-link">
+      <T zh={sitename['zh-CN']} en={withEn ? sitename['en-US'] : undefined} html />
+    </a>
+  </div>
+  {
+    header.search && (
+      <button type="button" class="ext" data-ext="search" aria-label="Search">
+        <Icon name="search" />
+      </button>
+    )
+  }
+  <button type="button" class="ext xaside" data-collapse="aside" aria-label="Toggle aside">
+    <Icon name="chevron-right" />
+  </button>
+</div>
+
+<style lang="scss">
+  .Header {
+    z-index: 970; // 原 zIndex(30)
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: $headerHeight;
+    color: var(--header);
+    background: var(--header-bg);
+    box-shadow: 0 $borderRadius * -0.5 $borderRadius var(--header);
+    display: grid;
+    grid-template-columns: $headerHeight $headerHeight auto $headerHeight $headerHeight;
+    grid-template-rows: $headerHeight;
+
+    @media (max-width: $smallestWidth) {
+      box-shadow: 0 0 1px var(--header);
+    }
+  }
+
+  .sitename,
+  .ext {
+    transition: background 0.6s, color 0.6s;
+  }
+
+  .sitename {
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: $headerHeight;
+    font-size: calc(#{$headerHeight} / 3);
+
+    @media (max-width: $smallestWidth) {
+      font-size: calc(#{$headerHeight} / 4);
+    }
+
+    font-weight: 555;
+    user-select: none;
+
+    // 站名整条是回首页链接（Hexo fork 的 sitename 改造）
+    :global(a.sitename-link) {
+      color: inherit;
+
+      &::before {
+        display: none;
+      }
+    }
+
+    :global(em),
+    :global(strong) {
+      display: inline-block;
+      position: relative;
+      font-style: normal;
+    }
+    :global(em + strong),
+    :global(strong + em) {
+      margin-left: 0.5rem;
+    }
+    :global(em) :global(span) {
+      display: inline-block;
+      margin: 0 0.1rem;
+      transform: scale(1.1);
+    }
+    :global(strong) {
+      position: relative;
+      padding: 0 0.5rem;
+      color: var(--readme-more-txt);
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: calc(#{$headerHeight} / 5); // 1px offset manually set
+        left: 0;
+        height: calc(#{$headerHeight} / 5 * 3);
+        width: 100%;
+        background: var(--link);
+        border-radius: $borderRadius * 1.5;
+        z-index: -1;
+      }
+
+      :global(span) {
+        position: relative;
+        color: var(--readme-more-txt);
+      }
+    }
+  }
+
+  .ext {
+    height: $headerHeight;
+    width: $headerHeight;
+    line-height: $headerHeight;
+    text-align: center;
+    cursor: pointer;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1rem;
+    padding: 0;
+
+    &:hover {
+      background: var(--highlight);
+      @media (max-width: $smallestWidth) {
+        background: var(--header-bg);
+      }
+    }
+
+    &.active[data-ext='portal'] {
+      color: var(--readme-more-txt);
+      background: var(--link);
+    }
+    &.active[data-ext='search'] {
+      color: var(--readme-more-txt);
+      background: var(--underline);
+    }
+
+    // 抽屉开关激活态：右下角小圆点（Hexo 版 xdrawer 的指示）
+    &.xdrawer {
+      position: relative;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: calc(#{$headerHeight} / 2 + 0.375rem);
+        right: calc(#{$headerHeight} / 2 - 0.75rem);
+        width: 0.75rem;
+        height: 0.75rem;
+        border-radius: 50%;
+        background: var(--txt);
+        transition: opacity 0.6s;
+        opacity: 0;
+      }
+
+      &.active::after {
+        opacity: 1;
+      }
+    }
+
+    // 右栏开关激活态：箭头旋转 180°（Hexo 版 xaside 的指示）
+    &.xaside :global(svg) {
+      transition: transform 0.6s;
+    }
+    &.xaside.active :global(svg) {
+      transform: rotate(180deg);
+    }
+  }
+</style>

@@ -1,0 +1,24 @@
+---
+// 独立页面 —— 对应 Hexo page 布局 / VuePress Layout.vue（about 等，无文章尾部）
+import Base from '../layouts/Base.astro';
+import Article from '../components/Article.astro';
+import Comment from '../components/Comment.astro';
+import { getCollection, render } from 'astro:content';
+import { insertSpace } from '../markdown/remark-pangu';
+
+export async function getStaticPaths() {
+  const pages = await getCollection('pages', ({ data }) => !data.draft);
+  return pages.map((page) => ({ params: { slug: page.id }, props: { page } }));
+}
+
+const { page } = Astro.props;
+const { Content } = await render(page);
+const title = insertSpace(page.data.title);
+---
+
+<Base title={title} description={title}>
+  <Article title={title} isPost={false}>
+    <Content />
+  </Article>
+  <Comment />
+</Base>

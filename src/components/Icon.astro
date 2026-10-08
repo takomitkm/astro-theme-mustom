@@ -1,0 +1,81 @@
+---
+// 内联图标 —— astro-icon（官方方案）+ Iconify fa6 数据源，取代原 Font Awesome 字体
+// 与自提取脚本。组件 API 保持 name/fw 不变，内部做 FA5→FA6 名称映射。
+import { Icon as AstroIcon } from 'astro-icon/components';
+
+interface Props {
+  name: string;
+  fw?: boolean;
+  class?: string;
+}
+
+const { name, fw = false, class: className = '' } = Astro.props;
+
+/** 原 FA5 名称 → Iconify fa6 集合（FA6 改名的在此对账） */
+const MAP: Record<string, string> = {
+  // solid
+  cube: 'fa6-solid:cube',
+  search: 'fa6-solid:magnifying-glass',
+  eye: 'fa6-solid:eye',
+  'user-tie': 'fa6-solid:user-tie',
+  'file-word': 'fa6-solid:file-word',
+  'id-card': 'fa6-solid:id-card',
+  archive: 'fa6-solid:box-archive',
+  'folder-open': 'fa6-solid:folder-open',
+  tags: 'fa6-solid:tags',
+  tag: 'fa6-solid:tag',
+  home: 'fa6-solid:house',
+  user: 'fa6-solid:user',
+  'paper-plane': 'fa6-solid:paper-plane',
+  'file-contract': 'fa6-solid:file-contract',
+  box: 'fa6-solid:box',
+  icons: 'fa6-solid:shapes',
+  edit: 'fa6-solid:pen-to-square',
+  link: 'fa6-solid:link',
+  tshirt: 'fa6-solid:shirt',
+  cog: 'fa6-solid:gear',
+  adjust: 'fa6-solid:circle-half-stroke',
+  'video-slash': 'fa6-solid:video-slash',
+  'globe-asia': 'fa6-solid:earth-asia',
+  'circle-notch': 'fa6-solid:circle-notch',
+  clock: 'fa6-solid:clock',
+  'calendar-alt': 'fa6-solid:calendar-days',
+  'calendar-check': 'fa6-solid:calendar-check',
+  history: 'fa6-solid:clock-rotate-left',
+  file: 'fa6-solid:file',
+  stopwatch: 'fa6-solid:stopwatch',
+  book: 'fa6-solid:book',
+  'book-open': 'fa6-solid:book-open',
+  bookmark: 'fa6-solid:bookmark',
+  comments: 'fa6-solid:comments',
+  'exclamation-circle': 'fa6-solid:circle-exclamation',
+  'arrow-up': 'fa6-solid:arrow-up',
+  'arrow-down': 'fa6-solid:arrow-down',
+  minus: 'fa6-solid:minus',
+  plus: 'fa6-solid:plus',
+  bars: 'fa6-solid:bars',
+  'chevron-right': 'fa6-solid:chevron-right',
+  download: 'fa6-solid:download',
+  envelope: 'fa6-solid:envelope',
+  rss: 'fa6-solid:rss',
+  video: 'fa6-solid:video',
+  robot: 'fa6-solid:robot',
+  'eye-slash': 'fa6-solid:eye-slash',
+  'circle-play': 'fa6-solid:circle-play',
+  shuffle: 'fa6-solid:shuffle',
+  // regular
+  'dot-circle': 'fa6-regular:circle-dot',
+  // brands
+  github: 'fa6-brands:github',
+  qq: 'fa6-brands:qq',
+  bilibili: 'simple-icons:bilibili',
+  'creative-commons': 'fa6-brands:creative-commons',
+  'creative-commons-by': 'fa6-brands:creative-commons-by',
+  'creative-commons-nc': 'fa6-brands:creative-commons-nc',
+  'creative-commons-sa': 'fa6-brands:creative-commons-sa',
+};
+
+const resolved = MAP[name] ?? `fa6-solid:${name}`;
+---
+
+<AstroIcon name={resolved} class:list={[{ fw }, className]} aria-hidden="true" />
