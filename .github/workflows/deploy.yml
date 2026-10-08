@@ -1,8 +1,15 @@
 name: Deploy to GitHub Pages
 
+# 本仓库是主题源码，不是线上站点。线上站点由 takomitkm/takomitkm.github.io 部署，
+# 所以这里默认不随 push 自动跑：Pages 未在仓库设置里启用时，
+# actions/deploy-pages 必然 404（Failed to create deployment），每次提交都挂红。
+#
+# 要把本仓库当演示站发布，需要先做两件事，再把 push 触发器加回来：
+#   1. Settings → Pages → Source 选 "GitHub Actions"（否则 deploy 步骤 404）
+#   2. 把 src/config.ts 的 site.url 改成 https://takomitkm.github.io/astro-theme-mustom
+#      并把 cdnPrefix 改成 .../gh/takomitkm/astro-theme-mustom@cdn，
+#      否则 canonical / OG / sitemap / CDN 资源仍指向旧站点
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

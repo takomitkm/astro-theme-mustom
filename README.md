@@ -99,7 +99,14 @@ src/
 
 ## 部署到 GitHub Pages
 
-`.github/workflows/deploy.yml` 已配好：build 产物一方面走官方工件模式发布 Pages，另一方面用 peaceiris 把 `dist` 推到同仓库的 **`cdn` 分支**（jsdelivr 镜像的是分支文件，工件模式的产物不在任何分支上，所以必须单独推）。站点地址与 `src/config.ts` 的 `site.url`、`astro.config.ts` 的 `site` 保持一致即可；若部署到 `用户名.github.io/仓库名/` 子路径，再给 astro.config 加 `base` 并给站内绝对链接加前缀。
+**本仓库是主题源码，不是线上站点**——线上站点部署在 `takomitkm/takomitkm.github.io`（`src/config.ts` 的 `site.url` 与 `cdnPrefix` 都指向它）。`.github/workflows/deploy.yml` 因此默认**只保留 `workflow_dispatch`，不随 push 自动跑**：Pages 未在仓库设置里启用时 `actions/deploy-pages` 必然 404（`Failed to create deployment`），每次提交都会挂红。
+
+要把本仓库单独当演示站发布，先做两件事，再把 `push` 触发器加回 `deploy.yml`：
+
+1. Settings → Pages → Source 选 **GitHub Actions**（否则 deploy 步骤 404）；
+2. 把 `site.url` 改成 `https://takomitkm.github.io/astro-theme-mustom`、`cdnPrefix` 改成 `.../gh/takomitkm/astro-theme-mustom@cdn`，否则 canonical / OG / sitemap / CDN 资源仍指向旧站点。
+
+workflow 本身：build 产物一方面走官方工件模式发布 Pages，另一方面用 peaceiris 把 `dist` 推到同仓库的 **`cdn` 分支**（jsdelivr 镜像的是分支文件，工件模式的产物不在任何分支上，所以必须单独推）。站点地址与 `src/config.ts` 的 `site.url`、`astro.config.ts` 的 `site` 保持一致即可；若部署到 `用户名.github.io/仓库名/` 子路径，再给 astro.config 加 `base` 并给站内绝对链接加前缀。
 
 CDN 已启用：`site.cdnPrefix = https://cdn.jsdelivr.net/gh/takomitkm/takomitkm.github.io@cdn`，构建出的 `_astro/*`（JS/CSS/打包图片）从 jsdelivr 分发，HTML、`public/`、pagefind、API 始终走 GitHub Pages。注意事项：仓库必须公开；jsdelivr 对分支引用有数小时缓存（换内容后可到 jsdelivr 手动 purge）；大陆直连偶有波动——介意单点就把 `cdnPrefix` 留空。换仓库名/分支改 `cdnPrefix` 一处即可（分支名由 deploy.yml 的 `publish_branch` 决定，当前 `cdn`）。
 
