@@ -291,13 +291,17 @@ html.close-aside .Aside {
 /* 卡片首栏统一反色：底色与字色对调。
    原先只给抽屉内那几张（主菜单 / 皮肤 / 设置）反色，其余卡片首栏仍是
    同色底 + 深字，视觉上割裂。现在全站 .card > .caption 一视同仁。
-   图标不用额外处理——全局已有 svg { fill: currentColor }，会自动跟随 color。 */
+   图标不用额外处理——全局已有 svg { fill: currentColor }，会自动跟随 color。
+
+   注意：本文件是通过 Base.astro 的 import 引进来的普通样式表，不参与 Astro 的
+   组件作用域编译，所以这里不能写 :global()——它不会被转换，会原样进产物变成
+   无效选择器被浏览器丢弃（原先抽屉那条反色规则里的 :global(a) 就踩过这个坑）。 */
 .card > .caption {
   background: var(--txt);
   color: var(--bg);
 
-  :global(a),
-  :global(button) {
+  a,
+  button {
     color: inherit;
   }
 }
