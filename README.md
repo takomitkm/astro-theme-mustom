@@ -131,6 +131,13 @@ This project is inspired by and references the following Mustom projects:
 - [zmfk/vuepress-theme-mustom](https://github.com/zmfk/vuepress-theme-mustom)
 - [椒盐豆豉的博客](https://blog.douchi.space/)
 
+### 取用细节
+
+- [reference/vitepress-theme-sakura.md](reference/vitepress-theme-sakura.md) — 从
+  [flaribbit/vitepress-theme-sakura](https://github.com/flaribbit/vitepress-theme-sakura) 取用的部分
+  （回到顶部卷轴、一言故障风、半透明顶栏、文章卡片悬浮阴影），逐条列明照搬了什么、
+  改了什么、为什么改。**注意：上游没有 LICENSE 文件，详见该文档开头的许可证提示。**
+
 ## 许可
 
 MIT（继承原主题，见 LICENSE）。其中：
@@ -138,3 +145,6 @@ MIT（继承原主题，见 LICENSE）。其中：
 - 图标：astro-icon + Iconify 的 Font Awesome 6 数据集（CC BY 4.0）
 - CC BY-NC-SA 徽章：Creative Commons 官方物料
 - `public/images/` 下的占位画（头像/滑稽表情/猫爪印等）：本仓库原创，随意替换
+- ⚠️ `public/images/sakura/scroll.png` 取自 vitepress-theme-sakura，**而上游没有 LICENSE 文件**
+  （保留所有权利）。公开分发前请先取得授权，或换成自制的卷轴图——它是纯装饰，
+  换成任意 70×900 的图都不影响逻辑。详见 [reference/vitepress-theme-sakura.md](reference/vitepress-theme-sakura.md)
