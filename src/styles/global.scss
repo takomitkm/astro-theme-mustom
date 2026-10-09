@@ -288,12 +288,16 @@ html.close-aside .Aside {
   }
 }
 
-/* 抽屉内卡片标题（主菜单 / 皮肤 / 设置）反色：底色与字色对调 */
-.Drawer .card > .caption {
+/* 卡片首栏统一反色：底色与字色对调。
+   原先只给抽屉内那几张（主菜单 / 皮肤 / 设置）反色，其余卡片首栏仍是
+   同色底 + 深字，视觉上割裂。现在全站 .card > .caption 一视同仁。
+   图标不用额外处理——全局已有 svg { fill: currentColor }，会自动跟随 color。 */
+.card > .caption {
   background: var(--txt);
   color: var(--bg);
 
-  :global(a) {
+  :global(a),
+  :global(button) {
     color: inherit;
   }
 }

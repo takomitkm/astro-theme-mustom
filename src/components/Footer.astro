@@ -58,17 +58,19 @@ const withEn = site.languages.includes('en-US');
       <em class="tip"><T zh={zhCN.footer.tipUv} en={withEn ? enUS.footer.tipUv : undefined} /></em>
     </span>
     </div>
-  {/* 最底下这条授权栏：访问计数图与 CC 徽章并列，高度对齐这条栏 */}
+  {/* 最底下这条授权栏，只放 CC 徽章 */}
   <div class="license">
     <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
-    <img
-      class="getloli"
-      src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
-      alt="site counter"
-      loading="lazy"
-      referrerpolicy="no-referrer"
-    />
   </div>
+  {/* 访问计数图（moe counter）：不属于任何一行，单独占住页脚右侧一条竖列，
+      高度从「© 2026 - 2026」那行一直贯到 CC 徽章那行（见 .getloli 的 top/bottom:0）。 */}
+  <img
+    class="getloli"
+    src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
+    alt="site counter"
+    loading="lazy"
+    referrerpolicy="no-referrer"
+  />
 </div>
 
 {/* 不蒜子官方脚本（替换自写 JSONP）；脚本不可达时数值保持 ∞ */}
@@ -84,6 +86,12 @@ const withEn = site.languages.includes('en-US');
     text-align: left;
     background: var(--bg);
     padding: 0.75rem calc(1rem + #{$borderRadius}) 0.5rem;
+    // 右侧给访问计数图那条竖列让位（.getloli 宽 14rem）
+    padding-right: 16rem;
+
+    @media (max-width: $smallestWidth) {
+      padding-right: calc(1rem + #{$borderRadius});
+    }
     border-radius: $borderRadius $borderRadius 0 0;
     position: relative;
     overflow: hidden;
@@ -167,9 +175,8 @@ const withEn = site.languages.includes('en-US');
 
   .license {
     padding-top: 0.5rem;
-    // 徽章在左、访问计数图推到最右；stretch 让计数图高度等于整条栏
     display: flex;
-    align-items: stretch;
+    align-items: center;
     gap: $gap * 0.5;
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
       position: absolute;
@@ -193,15 +200,21 @@ const withEn = site.languages.includes('en-US');
     }
   }
 
-  // 访问计数图：整条底栏最右侧，与栏内所有元素并列；
-  // 高度不写死，用 align-self: stretch 撑满整条栏（栏高由徽章决定）
+  /* 访问计数图（moe counter）：脱离常规流，绝对定位占住页脚右侧一整条竖列。
+     top/bottom 都给 0 => 高度从页脚第一行（「© 2026 - 2026」）贯到最后一行（CC 徽章），
+     不再和 CC 徽章挤在同一行。图片本身按 contain 缩放进这条竖列，保持原比例不拉变形。 */
   .getloli {
-    margin-left: auto; // 推到最右
-    align-self: stretch;
-    height: auto;
-    width: auto;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 14rem; // 竖列宽
+    height: 100%; // 整条页脚高
+    object-fit: contain;
+    object-position: center;
     border-radius: $borderRadius;
     image-rendering: pixelated;
+    pointer-events: none;
 
     @media (max-width: $smallestWidth) {
       display: none;

@@ -48,7 +48,6 @@ const withEn = site.languages.includes('en-US');
     padding: 0 $gap;
     font-size: 0.8em;
     line-height: 2.5;
-    background: var(--highlight);
     cursor: help;
 
     &:hover .hm-tip,
@@ -174,7 +173,7 @@ const withEn = site.languages.includes('en-US');
     // 方格边长：echarts 的 calendar 会把格子"宽"摊满容器（配置里给的宽会被忽略，
     // 只认 'auto'），只有"高"认配置——所以没法靠 cellSize 写一对相等的数。
     // 办法是量它算出来的实际宽，再把高对齐过去，见 draw() 里的两趟渲染。
-    const option = (box: HTMLElement, cellHeight: number) => {
+    const option = (box: HTMLElement, cellHeight: number, gridTop: number) => {
       const days: Array<[string, number]> = [];
       let top = 1;
       store.forEach((day, key) => {
@@ -221,7 +220,8 @@ const withEn = site.languages.includes('en-US');
           inRange: { color: ['#7aa8744c', '#7AA874'] },
         },
         calendar: {
-          top: 24,
+          // 月份标签要留出净空；格子矮于容器时这一项会被抬到居中位置（见 draw）
+          top: gridTop,
           left: 6,
           right: 6,
           // 宽只能是 auto（写了具体值也会被摊平），高由 draw() 对齐成方格
@@ -259,7 +259,7 @@ const withEn = site.languages.includes('en-US');
         resizeObserver && resizeObserver.observe(box);
         chart.resize();
         // 第一趟：高度随便给，echarts 会把"周数"和格子实际宽度算进坐标系
-        chart.setOption(option(box, 12), true);
+        chart.setOption(option(box, 12, 24), true);
         // 量出它算出来的格子宽 _sw，再把高度对齐 —— 格子的高宽一比一，成为方格。
         // 两趟都在同一个 JS 任务里完成，浏览器只会在最后 paint 一次，看不到中间态。
         const sw = (chart as unknown as { getModel?: () => CalendarModelLike })
@@ -267,10 +267,15 @@ const withEn = site.languages.includes('en-US');
           ?.getComponent?.('calendar')?.coordinateSystem?._sw;
         // 容器很宽时 _sw 会大到 7 行撑破图表高度，按可用高度封个顶（宁可左右留白也不溢出）
         const rows = 7;
-        const maxCell = Math.max(6, (box.clientHeight - 24) / rows);
+        const LABEL_ROOM = 24; // 月份标签要的净空
+        const maxCell = Math.max(6, (box.clientHeight - LABEL_ROOM) / rows);
         const square =
           typeof sw === 'number' && sw > 0 ? Math.min(sw, maxCell) : Math.min(12, maxCell);
-        chart.setOption(option(box, square), true);
+        // 方格比容器矮时（容器很宽、周数少，实测 20.79px × 7 行只占 169.5px，
+        // 容器 196px），空出来的 26.5px 全堆在下方，看着像图表没画满。
+        // 这里把整块网格垂直居中；下界取 LABEL_ROOM 保证月份标签始终有净空。
+        const gridTop = Math.max(LABEL_ROOM, (box.clientHeight - rows * square) / 2);
+        chart.setOption(option(box, square, gridTop), true);
         chart.off('click');
         chart.on('click', (params) => {
           if (params.componentType !== 'series') return;
