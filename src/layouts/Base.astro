@@ -232,12 +232,7 @@ const clientConfig = {
       const syncSize = () => {
         const canvas = document.querySelector<HTMLElement>('#live2d');
         if (!canvas || !heat) return;
-        // 直接量图表区 .hm-chart 的盒子，不再用「卡片高 - 40px」猜标题行有多高：
-        // 标题换行、边框、窄屏断点一变那个常数就不准了
-        // （实测图表 196px，而那个公式算出 190px）。
-        const chart = heat.querySelector<HTMLElement>('.hm-chart');
-        const box = (chart ?? heat).getBoundingClientRect();
-        const h = Math.max(120, Math.round(box.height));
+        const h = Math.max(120, Math.round(heat.getBoundingClientRect().height) - 40);
         canvas.style.height = h + 'px';
         // live2d 运行时按宽高比绘制，等比给宽度免得拉伸
         canvas.style.width = h + 'px';

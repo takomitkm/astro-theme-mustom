@@ -206,7 +206,8 @@ const withEn = site.languages.includes('en-US');
   .getloli {
     position: absolute;
     top: 0;
-    right: 0;
+    // 右边留白与左侧文字对齐（.Footer 的 padding-left 同值），不要抵着页脚边缘
+    right: calc(1rem + #{$borderRadius});
     bottom: 0;
     width: 14rem; // 竖列宽
     height: 100%; // 整条页脚高
