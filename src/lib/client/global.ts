@@ -13,6 +13,7 @@ import {
   toggleLive2d,
   togglePlayer,
   toggleAutoplay,
+  toggleSkeuoTop,
   swapLang,
   scroll2Top,
   scroll2Bottom,
@@ -121,6 +122,9 @@ function doSetting(name: string | undefined): void {
       break;
     case 'autoplay':
       toggleAutoplay();
+      break;
+    case 'skeuotop':
+      toggleSkeuoTop();
       break;
     case 'language':
       swapLang();

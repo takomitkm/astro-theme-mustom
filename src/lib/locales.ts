@@ -47,6 +47,7 @@ export const zhCN = {
     caption: '设置',
     names: {
       transfigure: '看板娘',
+      skeuotop: '滚动导航拟物化',
       hideplayer: '隐藏播放器',
       autoplay: '自动播放',
       language: 'English',
@@ -183,6 +184,7 @@ export const enUS = {
     caption: 'SETTINGS',
     names: {
       transfigure: 'Live2D Widget',
+      skeuotop: 'Skeuomorphic scroll nav',
       hideplayer: 'Hide Player',
       autoplay: 'Autoplay',
       language: '简体中文',

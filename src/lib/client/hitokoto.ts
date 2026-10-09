@@ -11,10 +11,17 @@ export function initHitokoto(): void {
   const fromEl = card.querySelector<HTMLElement>('.from span');
   if (!wordEl || !fromEl) return;
 
+  // 故障风靠 attr(data-text) 取文本，句子换了要同步更新，否则两层伪元素还留着旧句子
+  const glitch = wordEl.querySelector<HTMLElement>('.glitch');
+  const setWord = (text: string) => {
+    wordEl.querySelector<HTMLElement>('.glitch')!.textContent = text;
+    (glitch ?? wordEl).dataset.text = text;
+  };
+
   const { api, type, customs, placeholder } = mustomConfig().hitokoto ?? {};
 
   const apply = (word: string, from: string) => {
-    if (word.trim()) wordEl.textContent = word.trim();
+    if (word.trim()) setWord(word.trim());
     if (from.trim()) fromEl.textContent = from.trim();
   };
 
@@ -31,7 +38,7 @@ export function initHitokoto(): void {
       .then((r) => r.json())
       .then((result: { hitokoto?: string; from_who?: string; from?: string }) => {
         if (typeof result.hitokoto === 'string' && result.hitokoto.trim().length > 0) {
-          wordEl.textContent = result.hitokoto.trim();
+          setWord(result.hitokoto.trim());
         }
         const f =
           typeof result.from_who === 'string' && result.from_who.trim().length > 0

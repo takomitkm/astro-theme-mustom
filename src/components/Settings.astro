@@ -29,6 +29,11 @@ const withEn = site.languages.includes('en-US');
       <T zh={zhCN.settings.names.autoplay} en={withEn ? enUS.settings.names.autoplay : undefined} />
       <div class="switch"></div>
     </div>
+    <div class="row" data-setting="skeuotop">
+      <span class="icon"><Icon name="arrow-up" fw /></span>
+      <T zh={zhCN.settings.names.skeuotop} en={withEn ? enUS.settings.names.skeuotop : undefined} />
+      <div class="switch"></div>
+    </div>
     {
       withEn && (
         <div class="row" data-setting="language">

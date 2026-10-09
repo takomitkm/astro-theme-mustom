@@ -18,10 +18,18 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
   </div>
   <div class="inner">
     <div class="before" style={before}></div>
-    <div class="word">{hitokoto.placeholder?.word ?? 'Loading...'}</div>
+    <div class="word">
+      {/* 单独包一层 .glitch：.word 的 ::before/::after 已被『』括号占用，
+          故障风的两层错位色要用自己的伪元素 */}
+      <span class="glitch" data-text={hitokoto.placeholder?.word ?? 'Loading...'}
+        >{hitokoto.placeholder?.word ?? 'Loading...'}</span
+      >
+    </div>
     <div class="from"><span>{hitokoto.placeholder?.from ?? 'Loading...'}</span></div>
     <div class="after" style={after}></div>
   </div>
+  {/* 点击迸发粒子用的画布，覆盖整张卡片 */}
+  <canvas class="fx" aria-hidden="true"></canvas>
   <div class="minimize">
     <Icon name="minus" class="minus" />
     <Icon name="plus" class="plus" />
@@ -119,9 +127,195 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
       padding: 0;
     }
   }
+
+  /* ---------- 故障风（参考 vitepress-theme-sakura 的 GlitchText.vue） ----------
+     静止时两层伪元素 clip 成 0；鼠标悬浮才跑 glitch-loop，红/青两层左右错位抖动。
+     字号沿用卡片的 1.25rem（sakura 原版是 80px 的大标题，这里是卡片内的小字）。 */
+  .glitch {
+    position: relative;
+    display: inline-block;
+    font-weight: 700;
+
+    &::before,
+    &::after {
+      content: attr(data-text);
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      pointer-events: none;
+      clip-path: inset(100% 0 0 0);
+    }
+
+    &::before {
+      text-shadow: 2px 0 var(--selection);
+    }
+
+    &::after {
+      text-shadow: -2px 0 var(--link-markdown);
+    }
+
+    &:hover::before {
+      animation: glitch-loop-1 0.8s infinite ease-in-out alternate-reverse;
+    }
+
+    &:hover::after {
+      animation: glitch-loop-2 0.8s infinite ease-in-out alternate-reverse;
+    }
+  }
+
+  @keyframes glitch-loop-1 {
+    0% {
+      clip-path: inset(20% 0 72% 0);
+    }
+    25% {
+      clip-path: inset(58% 0 24% 0);
+    }
+    50% {
+      clip-path: inset(38% 0 46% 0);
+    }
+    75% {
+      clip-path: inset(70% 0 12% 0);
+    }
+    100% {
+      clip-path: inset(12% 0 80% 0);
+    }
+  }
+
+  @keyframes glitch-loop-2 {
+    0% {
+      top: -1px;
+      clip-path: inset(46% 0 36% 0);
+    }
+    25% {
+      top: -3px;
+      clip-path: inset(72% 0 12% 0);
+    }
+    50% {
+      top: -2px;
+      clip-path: inset(26% 0 58% 0);
+    }
+    75% {
+      top: 0;
+      clip-path: inset(84% 0 6% 0);
+    }
+    100% {
+      top: -1px;
+      clip-path: inset(34% 0 52% 0);
+    }
+  }
+
+  // 粒子画布：铺满卡片、不吃指针事件
+  .fx {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 3;
+  }
 </style>
 
 <script>
   import { initHitokoto } from '../lib/client/hitokoto';
   initHitokoto();
+
+  /* ---------- 点击迸发粒子 ----------
+     参考实现里没有这部分，是自己加的：在点击点生成一批彩色小方块，
+     带初速度与重力飞散，落到卡片外或寿命结束就移除画布。 */
+  const card = document.querySelector<HTMLElement>('.Hitokoto');
+  const fx = card?.querySelector<HTMLCanvasElement>('.fx');
+
+  if (card && fx) {
+    interface P {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      life: number;
+      size: number;
+      color: string;
+      spin: number;
+      rot: number;
+    }
+    const palette = () => {
+      const cs = getComputedStyle(card!);
+      const vars = ['--link', '--selection', '--link-markdown', '--underline', '--readme-more-bg', '--readme-more-warn'];
+      // 去重：黑白皮肤里 --link 与 --underline 同色，不去重的话粒子几乎是一个颜色
+      const seen = new Set<string>();
+      for (const v of vars) {
+        const c = cs.getPropertyValue(v).trim();
+        if (c) seen.add(c);
+      }
+      const list = [...seen];
+      // 三个皮肤的可选色都不够时，补两个固定色，保证炸开有层次
+      while (list.length < 3) list.push(list[list.length % Math.max(1, list.length)] ?? '#999');
+      return list.length ? list : ['#999'];
+    };
+
+    const burst = (ev: MouseEvent) => {
+      const box = card!.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      fx!.width = Math.round(box.width * dpr);
+      fx!.height = Math.round(box.height * dpr);
+      fx!.style.width = box.width + 'px';
+      fx!.style.height = box.height + 'px';
+      const ctx = fx!.getContext('2d');
+      if (!ctx) return;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, box.width, box.height);
+
+      const colors = palette();
+      const cx = ev.clientX - box.left;
+      const cy = ev.clientY - box.top;
+      const ps: P[] = [];
+      const N = 90;
+      for (let i = 0; i < N; i++) {
+        // 均匀取角度 + 随机初速，得到一圈炸开的火花
+        const a = (Math.PI * 2 * i) / N + Math.random() * 0.3;
+        const sp = 1.6 + Math.random() * 5.5;
+        ps.push({
+          x: cx,
+          y: cy,
+          vx: Math.cos(a) * sp,
+          vy: Math.sin(a) * sp - 1.4, // 略带上抛
+          life: 1,
+          size: 2 + Math.random() * 3.5,
+          color: colors[i % colors.length] || '#888',
+          spin: (Math.random() - 0.5) * 0.5,
+          rot: Math.random() * Math.PI,
+        });
+      }
+
+      let raf = 0;
+      const tick = () => {
+        ctx.clearRect(0, 0, box.width, box.height);
+        let alive = 0;
+        for (const p of ps) {
+          if (p.life <= 0) continue;
+          alive++;
+          p.vy += 0.16; // 重力
+          p.vx *= 0.99;
+          p.vy *= 0.99;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.rot += p.spin;
+          p.life -= 0.014;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+          ctx.fillStyle = p.color;
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          ctx.restore();
+        }
+        if (alive > 0) raf = requestAnimationFrame(tick);
+        else ctx.clearRect(0, 0, box.width, box.height);
+      };
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    };
+
+    card.addEventListener('click', burst);
+  }
 </script>

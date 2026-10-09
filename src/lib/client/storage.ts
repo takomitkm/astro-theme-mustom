@@ -12,6 +12,8 @@ export interface SaveData {
   noLive2d?: boolean;
   hidePlayer?: boolean;
   autoplay?: boolean;
+  /** 右下角按钮是否用拟物化卷轴样式 */
+  skeuoTop?: boolean;
   /** 被折叠的卡片 data-mini-id 列表（跨页保持折叠/展开） */
   mini?: string[];
 }

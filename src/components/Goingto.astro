@@ -1,5 +1,8 @@
 ---
-// 回到顶部/底部 + 中键（自动翻页）——对应 Goingto.vue
+// 右下角滚动导航 —— 两种形态：
+//   默认：上 / 中键 / 下 三个按钮
+//   拟物化（设置里打开「滚动导航拟物化」）：换成 sakura 主题的卷轴 to-top
+// 拟物化样式与素材取自 vitepress-theme-sakura（.vitepress/theme/ToTop.vue）
 import Icon from './Icon.astro';
 import { abs } from '../config';
 ---
@@ -11,6 +14,15 @@ import { abs } from '../config';
   </div>
   <div class="bottom"><Icon name="arrow-down" /></div>
 </div>
+
+{/* 拟物化卷轴：默认藏在屏外 top:-900px，滚过 200px 后由脚本推到可见位置 */}
+<a
+  href="#"
+  class="totop"
+  style="top: -900px;"
+  aria-label="to-top"
+  data-skeuo-totop
+></a>
 
 <style lang="scss">
 
@@ -73,27 +85,90 @@ import { abs } from '../config';
   :global(html.skin-night) .middle img {
     filter: invert(1);
   }
+
+  /* ---------- 拟物化卷轴（照搬 sakura 的 .totop） ---------- */
+  // 两种形态互斥：开关关 → 三按钮；开关开 → 卷轴
+  html.skeuo-top .Goingto {
+    display: none;
+  }
+  html:not(.skeuo-top) .totop {
+    display: none;
+  }
+
+  .totop {
+    position: fixed;
+    width: 70px;
+    height: 900px;
+    right: 25px;
+    bottom: auto;
+    z-index: 960;
+    background-image: url('/images/sakura/scroll.png');
+    background-size: 70px 900px;
+    background-repeat: no-repeat;
+    transition: top 0.5s ease-in-out;
+    animation: skeuo-float 2s ease-in-out infinite;
+    cursor: pointer;
+    pointer-events: auto;
+
+    &::before {
+      display: none; // 去掉全局 a::before 的下划线
+    }
+
+    &:hover {
+      filter: brightness(1.06);
+    }
+  }
+
+  @keyframes skeuo-float {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
 </style>
 
 <script>
-  /* 中间那个按钮 = 鼠标中键的行为：自动向下翻页到底，滚到头就回顶。
-     中键在浏览器里会触发自动滚动（autoscroll），这里 preventDefault 接管，
-     只在 .Goingto .middle 上按下才拦截，避免影响页面其它区域的中键行为。 */
+  /* ---------- 三按钮形态 ---------- */
   const box = document.querySelector<HTMLElement>('.Goingto .middle');
   box?.addEventListener('mousedown', (e) => {
     if (e.button !== 1) return; // 只认中键
     e.preventDefault();
-
     const doc = document.scrollingElement || document.documentElement;
     const atBottom = doc.scrollTop + window.innerHeight >= doc.scrollHeight - 2;
-    // 与 actions.ts 的滚动一致：到底则回顶，否则整屏往下翻
     window.scrollTo({
       top: atBottom ? 0 : doc.scrollTop + window.innerHeight * 0.9,
       behavior: 'smooth',
     });
   });
-  // 部分环境里 mousedown 的 preventDefault 拦不住 autoscroll，再兜一层
   box?.addEventListener('auxclick', (e) => {
     if (e.button === 1) e.preventDefault();
   });
+
+  /* ---------- 拟物化卷轴形态 ----------
+     逻辑照搬 sakura 的 ToTop.vue：滚过 200px 才把卷轴从屏外推上来，
+     桌面推到 innerHeight-968（900px 高的卷轴正好露在视口下沿），
+     窄屏只露 -640px 的一小截；点击平滑回顶。 */
+  const totop = document.querySelector<HTMLElement>('[data-skeuo-totop]');
+  if (totop) {
+    const HIDE = 'top: -900px';
+    const place = () => {
+      if (window.scrollY > 200) {
+        totop.style.top = window.innerWidth > 720 ? `${Math.min(window.innerHeight - 968, 0)}px` : '-640px';
+      } else {
+        totop.style.top = HIDE;
+      }
+    };
+    totop.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    window.addEventListener('scroll', place, { passive: true });
+    window.addEventListener('resize', place);
+    place();
+  }
 </script>

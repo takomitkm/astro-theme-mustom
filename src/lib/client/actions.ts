@@ -25,6 +25,14 @@ export function setSkin(name: string): void {
   syncSkinUI();
 }
 
+/* ---------- 滚动导航拟物化（右下角按钮换成 sakura 主题的卷轴式 to-top） ---------- */
+export function toggleSkeuoTop(): boolean {
+  const on = html().classList.toggle('skeuo-top');
+  patchSave({ skeuoTop: on });
+  syncSettingsUI();
+  return on;
+}
+
 /* ---------- 看板娘开关（Hexo settings.transfigure → NO_LIVE2D） ---------- */
 export function toggleLive2d(): boolean {
   const off = html().classList.toggle('NO_LIVE2D');
@@ -101,6 +109,7 @@ export function syncSettingsUI(): void {
     if (name === 'transfigure') checked = !html().classList.contains('NO_LIVE2D');
     else if (name === 'hideplayer') checked = html().classList.contains('hide-player');
     else if (name === 'autoplay') checked = !!getSave().autoplay || getSave().autoplay === undefined;
+    else if (name === 'skeuotop') checked = html().classList.contains('skeuo-top');
     else if (name === 'language') checked = html().classList.contains('lang-en');
     row.classList.toggle('active', checked);
   }
