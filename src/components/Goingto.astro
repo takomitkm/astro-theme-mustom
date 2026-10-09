@@ -1,8 +1,10 @@
 ---
 // 右下角滚动导航 —— 两种形态：
 //   默认：上 / 中键 / 下 三个按钮
-//   拟物化（设置里打开「滚动导航拟物化」）：换成 sakura 主题的卷轴 to-top
-// 拟物化样式与素材取自 vitepress-theme-sakura（.vitepress/theme/ToTop.vue）
+//   拟物化（设置里打开「滚动导航拟物化」）：换成一根 900px 高的鸟居柱 to-top
+// 位置与显隐逻辑参考 vitepress-theme-sakura 的 ToTop.vue（见 reference/），
+// 但鸟居本身是用 CSS 画的，不再使用上游那张 scroll.png——
+// 上游没有 LICENSE，那张二进制素材不适合直接再分发。
 import Icon from './Icon.astro';
 import { abs } from '../config';
 ---
@@ -15,14 +17,27 @@ import { abs } from '../config';
   <div class="bottom"><Icon name="arrow-down" /></div>
 </div>
 
-{/* 拟物化卷轴：默认藏在屏外 top:-900px，滚过 200px 后由脚本推到可见位置 */}
+{/* 拟物化鸟居：默认藏在屏外 top:-900px，滚过 200px 后由脚本推到可见位置。
+    柱身是 .totop 的 ::before，门身是下面这组纯装饰的子元素。 */}
 <a
   href="#"
   class="totop"
   style="top: -900px;"
   aria-label="to-top"
   data-skeuo-totop
-></a>
+>
+  <span class="gate" aria-hidden="true">
+    <i class="pole"></i>
+    <i class="beam"></i>
+    <i class="tip-l"></i>
+    <i class="tip-r"></i>
+    <i class="marks"></i>
+    <i class="posts"></i>
+    <i class="nuki"></i>
+    <i class="base"></i>
+    <i class="curl"></i>
+  </span>
+</a>
 
 <style lang="scss">
 
@@ -86,8 +101,10 @@ import { abs } from '../config';
     filter: invert(1);
   }
 
-  /* ---------- 拟物化卷轴（照搬 sakura 的 .totop） ---------- */
-  // 两种形态互斥：开关关 → 三按钮；开关开 → 卷轴
+  /* ---------- 拟物化鸟居（位置/显隐逻辑参考 sakura 的 ToTop.vue） ----------
+     图形是纯 CSS 画的：柱身在 .pole，门身在 .gate 里那几个 <i>。
+     尺寸沿用上游的 70×900 与显隐判据（见文件末尾的脚本），所以行为完全一致。 */
+  // 两种形态互斥：开关关 → 三按钮；开关开 → 鸟居
   html.skeuo-top .Goingto {
     display: none;
   }
@@ -96,27 +113,158 @@ import { abs } from '../config';
   }
 
   .totop {
+    // 上游那张图只有这几个颜色，先记成变量方便统一调整
+    --sak: #be493e; // 柱身与横梁的红褐
+    --sak-dk: #8c3329; // 斜纹里的暗部
+    --ink: #060102; // 描边用的近黑
+    --paper: #fff; // 门身白
+
     position: fixed;
     width: 70px;
     height: 900px;
     right: 25px;
     bottom: auto;
     z-index: 960;
-    background-image: url('/images/sakura/scroll.png');
-    background-size: 70px 900px;
-    background-repeat: no-repeat;
     transition: top 0.5s ease-in-out;
     animation: skeuo-float 2s ease-in-out infinite;
     cursor: pointer;
     pointer-events: auto;
 
-    &::before {
-      display: none; // 去掉全局 a::before 的下划线
+    // 全局 a::before / a::after 的下划线在这里不要
+    &::before,
+    &::after {
+      display: none;
     }
 
     &:hover {
       filter: brightness(1.06);
     }
+  }
+
+  .gate {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 6px;
+    height: 102px;
+  }
+
+  // 所有门身零件共用的定位方式
+  .gate > i {
+    position: absolute;
+    display: block;
+  }
+
+  /* 柱身：红褐与黑相间，8px 一个周期（7px 红 + 1px 黑），
+     两侧各留 1px 黑边。用 repeating-linear-gradient 而不是一堆 div。 */
+  .pole {
+    left: 50%;
+    // 门身贴在元素底部（top = 900 - 6 - 102 = 792px），
+    // 柱身要一路顶到元素最上沿，所以相对门身是 -792px、高 792px。
+    top: -792px;
+    width: 4px;
+    height: 792px;
+    margin-left: -2px;
+    box-sizing: border-box;
+    border-left: 1px solid var(--ink, #060102);
+    border-right: 1px solid var(--ink, #060102);
+    background: repeating-linear-gradient(
+      to bottom,
+      var(--sak, #be493e) 0 7px,
+      var(--ink, #060102) 7px 8px
+    );
+  }
+
+  /* 上梁（笠木）：横贯全宽的六边形梁，两端各配一个向外上翘的尖角。
+     尖角顶点朝外（左端顶点在左上、右端在右上），和梁叠起来就是翘头的笠木。 */
+  .beam {
+    left: 0;
+    right: 0;
+    top: 6px;
+    height: 11px;
+    background: var(--paper, #fff);
+    clip-path: polygon(0 0, 100% 0, 100% 60%, 93% 100%, 7% 100%, 0 60%);
+  }
+
+  .tip-l,
+  .tip-r {
+    top: 0;
+    width: 17px;
+    height: 12px;
+    background: var(--paper, #fff);
+  }
+
+  .tip-l {
+    left: 0;
+    clip-path: polygon(0 0, 100% 100%, 0 100%);
+  }
+
+  .tip-r {
+    right: 0;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+  }
+
+  // 梁面上那几道深色短竖线（原图里就有的装饰笔画）
+  .marks {
+    left: 52%;
+    top: 9px;
+    width: 14px;
+    height: 8px;
+    background: repeating-linear-gradient(to right, #5c5c5c 0 2px, transparent 2px 5px);
+  }
+
+  // 两根立柱：用一个元素画两条，中间是空的
+  .posts {
+    left: 14px;
+    right: 14px;
+    top: 19px;
+    height: 58px;
+    background: linear-gradient(
+      to right,
+      var(--paper, #fff) 0 7px,
+      transparent 7px calc(100% - 7px),
+      var(--paper, #fff) calc(100% - 7px) 100%
+    );
+  }
+
+  // 下梁（貫）：红褐斜纹，比上梁窄
+  .nuki {
+    left: 20px;
+    right: 20px;
+    top: 46px;
+    height: 14px;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--sak, #be493e) 0 3px,
+      var(--sak-dk, #8c3329) 3px 6px
+    );
+  }
+
+  // 基座：略微外扩的白色梯形
+  .base {
+    left: 5px;
+    right: 5px;
+    top: 78px;
+    height: 13px;
+    background: var(--paper, #fff);
+    clip-path: polygon(4% 0, 96% 0, 100% 100%, 0 100%);
+  }
+
+  // 右下角那撮小卷曲
+  .curl {
+    right: 21px;
+    top: 84px;
+    width: 11px;
+    height: 18px;
+    background: var(--paper, #fff);
+    border-radius: 0 0 60% 60% / 0 0 100% 100%;
+  }
+
+  // 墨线描边：四向 0 模糊 drop-shadow 勾出 alpha 形状的 1px 轮廓
+  .beam,
+  .base {
+    filter: drop-shadow(1px 0 0 var(--ink, #060102)) drop-shadow(-1px 0 0 var(--ink, #060102))
+      drop-shadow(0 1px 0 var(--ink, #060102)) drop-shadow(0 -1px 0 var(--ink, #060102));
   }
 
   @keyframes skeuo-float {

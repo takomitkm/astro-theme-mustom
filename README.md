@@ -145,6 +145,7 @@ MIT（继承原主题，见 LICENSE）。其中：
 - 图标：astro-icon + Iconify 的 Font Awesome 6 数据集（CC BY 4.0）
 - CC BY-NC-SA 徽章：Creative Commons 官方物料
 - `public/images/` 下的占位画（头像/滑稽表情/猫爪印等）：本仓库原创，随意替换
-- ⚠️ `public/images/sakura/scroll.png` 取自 vitepress-theme-sakura，**而上游没有 LICENSE 文件**
-  （保留所有权利）。公开分发前请先取得授权，或换成自制的卷轴图——它是纯装饰，
-  换成任意 70×900 的图都不影响逻辑。详见 [reference/vitepress-theme-sakura.md](reference/vitepress-theme-sakura.md)
+- 拟物化回到顶部的鸟居图形（`Goingto.astro`）：**纯 CSS 绘制**，
+  早期版本曾直接引用 vitepress-theme-sakura 的 `scroll.png` 位图，
+  因**上游没有 LICENSE 文件**（保留所有权利）已改为自绘，仓库内不再包含其任何文件。
+  详见 [reference/vitepress-theme-sakura.md](reference/vitepress-theme-sakura.md)
