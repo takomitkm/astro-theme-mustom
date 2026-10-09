@@ -135,19 +135,88 @@ import { abs } from '../config';
 <script>
   /* ---------- 三按钮形态 ---------- */
   const box = document.querySelector<HTMLElement>('.Goingto .middle');
-  box?.addEventListener('mousedown', (e) => {
-    if (e.button !== 1) return; // 只认中键
+
+  /* ---------- 自动滚动 ----------
+     浏览器原生那个「空白处按中键」的自动滚动没有可编程入口（那是浏览器 UI 行为，
+     派发合成事件触发不了），所以这里自己实现一套等效的：进入后光标换成自动滚动
+     图标，页面按「光标离视口中线的偏移」持续滚，越偏越快；再点一次按钮 / 点任意
+     处 / 滚轮 / Esc 都退出，和原生一致。 */
+  const asHtml = document.documentElement;
+  let asRaf = 0;
+  let asY = 0;
+  let asNudge = 0;
+  let asPrevBehavior = '';
+
+  const asStop = () => {
+    if (!asHtml.classList.contains('autoscrolling')) return;
+    cancelAnimationFrame(asRaf);
+    asRaf = 0;
+    asNudge = 0;
+    asHtml.classList.remove('autoscrolling');
+    asHtml.style.scrollBehavior = asPrevBehavior;
+  };
+
+  const asLoop = () => {
+    // 越偏离视口中线滚得越快；回到中线附近就停住。
+    // 上限 16px/帧（约 960px/s）——实测 22 时一屏多长的文章两秒就滚过去了，太窜
+    const half = window.innerHeight / 2;
+    const ratio = Math.max(-1, Math.min(1, (asY - half) / (half * 0.6)));
+    let v = ratio * 16 + asNudge;
+    if (Math.abs(v) < 0.6) v = 0;
+    asNudge = 0;
+    const doc = document.scrollingElement || asHtml;
+    // 顶到头尾就停下，别在边界上原地抖
+    if (doc.scrollTop + v <= 0 || doc.scrollTop + v >= doc.scrollHeight - window.innerHeight) v = 0;
+    window.scrollTo(0, doc.scrollTop + v);
+    asRaf = requestAnimationFrame(asLoop);
+  };
+
+  const asStart = () => {
+    if (asHtml.classList.contains('autoscrolling')) return;
+    asHtml.classList.add('autoscrolling');
+    asY = window.innerHeight / 2;
+    // 全局有 scroll-behavior: smooth，不改掉的话每帧 scrollTo 都会被平滑动画
+    // 拖成慢动作，自动滚动直接变成龟速
+    asPrevBehavior = asHtml.style.scrollBehavior;
+    asHtml.style.scrollBehavior = 'auto';
+    asRaf = requestAnimationFrame(asLoop);
+  };
+
+  box?.addEventListener('click', (e) => {
     e.preventDefault();
-    const doc = document.scrollingElement || document.documentElement;
-    const atBottom = doc.scrollTop + window.innerHeight >= doc.scrollHeight - 2;
-    window.scrollTo({
-      top: atBottom ? 0 : doc.scrollTop + window.innerHeight * 0.9,
-      behavior: 'smooth',
-    });
+    asHtml.classList.contains('autoscrolling') ? asStop() : asStart();
   });
   box?.addEventListener('auxclick', (e) => {
     if (e.button === 1) e.preventDefault();
   });
+
+  if (box) {
+    document.addEventListener(
+      'mousemove',
+      (e) => {
+        if (asHtml.classList.contains('autoscrolling')) asY = e.clientY;
+      },
+      { passive: true },
+    );
+    document.addEventListener('keydown', (e) => {
+      if (!asHtml.classList.contains('autoscrolling')) return;
+      if (e.key === 'Escape') {
+        asStop();
+        return;
+      }
+      const d = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+      if (d) {
+        e.preventDefault();
+        asNudge = d * 45;
+      }
+    });
+    // 任意处左键点一下或滚一下就退出；但点在按钮上要留给 click 去切换，
+    // 否则 mousedown 先退出、click 又把自动滚动打开，点了等于没点
+    document.addEventListener('mousedown', (e) => {
+      if (e.button === 0 && !box.contains(e.target as Node)) asStop();
+    });
+    document.addEventListener('wheel', asStop, { passive: true });
+  }
 
   /* ---------- 拟物化卷轴形态 ----------
      逻辑照搬 sakura 的 ToTop.vue：滚过 200px 才把卷轴从屏外推上来，

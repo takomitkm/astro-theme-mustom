@@ -57,7 +57,10 @@ const withEn = site.languages.includes('en-US');
       <span id="busuanzi_value_site_uv">∞</span>
       <em class="tip"><T zh={zhCN.footer.tipUv} en={withEn ? enUS.footer.tipUv : undefined} /></em>
     </span>
-    {/* 访问计数图：放在 pv/uv 这一行里（原来错做成右下角浮层，压在看板娘那边） */}
+    </div>
+  {/* 最底下这条授权栏：访问计数图与 CC 徽章并列，高度对齐这条栏 */}
+  <div class="license">
+    <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
     <img
       class="getloli"
       src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
@@ -65,9 +68,6 @@ const withEn = site.languages.includes('en-US');
       loading="lazy"
       referrerpolicy="no-referrer"
     />
-  </div>
-  <div class="license">
-    <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
   </div>
 </div>
 
@@ -166,6 +166,10 @@ const withEn = site.languages.includes('en-US');
 
   .license {
     padding-top: 0.5rem;
+    // 徽章与访问计数图并排，底边对齐
+    display: flex;
+    align-items: flex-end;
+    gap: $gap * 0.5;
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
       position: absolute;
       right: calc(1rem + #{$borderRadius});
@@ -188,12 +192,17 @@ const withEn = site.languages.includes('en-US');
     }
   }
 
-  // 访问计数图：跟在 pv/uv 后面，不占额外的一行
+  // 访问计数图：与 CC 徽章同在授权栏，高度对齐徽章（$footerLicenseHeight）
   .getloli {
     display: inline-block;
-    height: auto;
-    max-height: 2.5rem;
+    height: $footerLicenseHeight;
+    width: auto;
     vertical-align: middle;
     border-radius: $borderRadius;
+    image-rendering: pixelated;
+
+    @media (max-width: $smallestWidth) {
+      display: none;
+    }
   }
 </style>

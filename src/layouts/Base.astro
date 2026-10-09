@@ -222,43 +222,69 @@ const clientConfig = {
       else window.addEventListener('load', clearLoading, { once: true });
       window.setTimeout(clearLoading, 1200);
 
-      // 看板娘拖动中加 .dragging，光标切到四向移动指针
-      const waifu = document.querySelector('#waifu') || document.querySelector('#live2d');
-      if (waifu) {
-        waifu.addEventListener('pointerdown', () => waifu.classList.add('dragging'));
-        window.addEventListener('pointerup', () => waifu.classList.remove('dragging'));
+      /* 看板娘相关。
+         live2d 的 loader.js 是顶层 await 的 module，这段脚本跑的时候
+         #waifu / #live2d 都还没建出来，所以统一挂一个 MutationObserver，
+         等元素出现后再接拖拽光标、Ctrl+滚轮缩放、尺寸同步。 */
+      const heat = document.querySelector<HTMLElement>('.Heatmap.card');
+
+      // 画布高度跟随热力图卡片：用卡片实际高度减去标题行，剩下的正好是图表区
+      const syncSize = () => {
+        const canvas = document.querySelector<HTMLElement>('#live2d');
+        if (!canvas || !heat) return;
+        const h = Math.max(120, Math.round(heat.getBoundingClientRect().height) - 40);
+        canvas.style.height = h + 'px';
+        // live2d 运行时按宽高比绘制，等比给宽度免得拉伸
+        canvas.style.width = h + 'px';
+      };
+
+      /* Ctrl+滚轮缩放。拦下这个组合键是为了不让浏览器去做页面缩放——一旦整页缩放，
+         就会触发 resize、带动上面的同步重新给 #live2d 写死宽高，容器尺寸和模型实际
+         绘制尺寸对不上，人就被裁掉一截。改成纯 CSS transform 缩放：不参与布局、
+         不触发 resize，想放多大放多大都不会被裁。按要求不写 localStorage，
+         每次打开都从 1 倍开始。 */
+      const bindWaifu = (box: HTMLElement) => {
+        // 拖拽中把光标切成四向移动指针
+        box.addEventListener('pointerdown', () => box.classList.add('dragging'));
+        window.addEventListener('pointerup', () => box.classList.remove('dragging'));
+
+        const ZMIN = 0.4;
+        const ZMAX = 4;
+        let zoom = 1;
+        const apply = () => box.style.setProperty('--waifu-zoom', String(zoom));
+        box.addEventListener(
+          'wheel',
+          (e) => {
+            if (!e.ctrlKey) return;
+            e.preventDefault();
+            e.stopPropagation();
+            zoom = Math.min(ZMAX, Math.max(ZMIN, zoom * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+            apply();
+          },
+          { passive: false, capture: true },
+        );
+        syncSize();
+      };
+
+      if (document.querySelector('#waifu')) bindWaifu(document.querySelector<HTMLElement>('#waifu')!);
+      else {
+        const moWaifu = new window.MutationObserver(() => {
+          const box = document.querySelector<HTMLElement>('#waifu');
+          if (!box) return;
+          moWaifu.disconnect();
+          bindWaifu(box);
+        });
+        moWaifu.observe(document.body, { childList: true, subtree: true });
       }
 
-      /* 看板娘画布高度跟随热力图卡片。
-         注意：live2d 的 loader.js 是顶层 await 的 module，这段脚本跑的时候
-         #live2d 还没建出来，所以先挂 MutationObserver 等它出现，再开始同步。 */
-      const heat = document.querySelector<HTMLElement>('.Heatmap.card');
       if (heat) {
-        const sync = () => {
-          const canvas = document.querySelector<HTMLElement>('#live2d');
-          if (!canvas) return;
-          // 用卡片实际高度，减去标题行，剩下的正好是图表区
-          const h = Math.max(120, Math.round(heat.getBoundingClientRect().height) - 40);
-          canvas.style.height = h + 'px';
-          // live2d 运行时按宽高比绘制，等比给宽度免得拉伸
-          canvas.style.width = h + 'px';
-        };
         if (typeof window.ResizeObserver === 'function') {
-          new window.ResizeObserver(sync).observe(heat);
+          new window.ResizeObserver(syncSize).observe(heat);
         }
-        window.addEventListener('resize', sync);
+        window.addEventListener('resize', syncSize);
         // 热力图折叠状态变化后也要跟上
-        document.addEventListener('mustom:resize', () => window.setTimeout(sync, 250));
-
-        if (document.querySelector('#live2d')) sync();
-        else {
-          const mo = new window.MutationObserver(() => {
-            if (!document.querySelector('#live2d')) return;
-            mo.disconnect();
-            sync();
-          });
-          mo.observe(document.body, { childList: true, subtree: true });
-        }
+        document.addEventListener('mustom:resize', () => window.setTimeout(syncSize, 250));
+        syncSize();
       }
     </script>
     <script>

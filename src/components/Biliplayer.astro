@@ -226,9 +226,11 @@ const withEn = site.languages.includes('en-US');
   // 这件事讲明白，免得访客点了暂停还等它停
   .nopause {
     display: block;
-    padding: $gap * 0.5 $gap $gap;
+    // 内边距跟着字号走（0.7em 的小字不该撑出 1.5rem 的行高），
+    // 用 em 是为了让这条提示栏始终贴着文字高度
+    padding: 0.3em 0.6em;
     font-size: 0.7em;
-    line-height: 1.6;
+    line-height: 1.5;
     text-align: center;
     opacity: 0.6;
   }
@@ -252,6 +254,8 @@ const withEn = site.languages.includes('en-US');
     let watcher = 0;
     let mounted = false;
     let pageLoaded = false;
+    // 设置里的"隐藏播放器"打开时为 true：整个卡片连同后台播放一并停掉
+    let offscreen = false;
     let armed = false;
     let startedAt = 0;
     let deadline = 0;
@@ -305,7 +309,7 @@ const withEn = site.languages.includes('en-US');
     const render = () => {
       const item = current();
       if (!item) return;
-      // 两行：第一行 bvid/avid，第二行是这首歌在歌单里的第几个
+      // 两行：第一行 bvid/avid，第二行只留歌单位置数字
       const slot = q<HTMLElement>('.now')!;
       slot.innerHTML = '';
       const code = document.createElement('span');
@@ -314,7 +318,7 @@ const withEn = site.languages.includes('en-US');
       const pos = document.createElement('span');
       pos.className = 'now-pos';
       const at = index + 1;
-      pos.textContent = `歌单第 ${at} / ${list.length} 首`;
+      pos.textContent = `${at} / ${list.length}`;
       slot.append(code, pos);
     };
 
@@ -413,6 +417,9 @@ const withEn = site.languages.includes('en-US');
     };
 
     const start = () => {
+      // 藏起来时绝不能起播：否则页面加载完（ready）或歌单 JSON 到位后
+      // 又会走 start()，卡片看不见、歌还在后台放
+      if (offscreen) return;
       if (!el || !list.length || mounted || ticker) return;
       autoplayOn() ? begin() : stop();
     };
@@ -436,6 +443,7 @@ const withEn = site.languages.includes('en-US');
     // 藏起来就得把版面还原（CSS 靠 hitokoto-bgm-restored 判断）
     const hidden = (flag: boolean) => {
       if (!el) return;
+      offscreen = flag;
       const panel = el.closest<HTMLElement>('.Hitokoto');
       panel && panel.classList.toggle('hitokoto-bgm-restored', flag);
       if (flag) {
@@ -443,6 +451,8 @@ const withEn = site.languages.includes('en-US');
         el.classList.add('HIDE');
       } else {
         el.classList.remove('HIDE');
+        // 重新露出来就补上起播（原先只去掉 HIDE，按钮还是一片空白）
+        if (pageLoaded) start();
       }
     };
 
@@ -491,6 +501,13 @@ const withEn = site.languages.includes('en-US');
       if (!(e as CustomEvent<boolean>).detail) stop();
       else if (!mounted && !ticker) start();
     });
+
+    // ready() 之前从没被调用过，pageLoaded 一直是 false：歌单 JSON 到位后只会
+    // mask('waiting')，播放器卡在等待态，非得用户手动点一下才开始放。
+    // 这里补上 load 钩子；已经 load 完（脚本是 module，可能晚于 load）就直接调。
+    if (document.readyState === 'complete') ready();
+    else window.addEventListener('load', ready, { once: true });
+
     document.documentElement.classList.contains('hide-player') && hidden(true);
 
     fetch(el.dataset.playlist!)

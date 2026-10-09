@@ -3,6 +3,14 @@
   z-index: 99997;
 }
 
+/* Ctrl+滚轮缩放：纯 transform，不参与布局，所以放大多少都不会被父容器裁掉。
+   缩放值由 Base.astro 写在 #waifu 的 --waifu-zoom 上（自定义属性会继承下来），
+   从右下角长出来——桌面端 #waifu 贴的是 right:76px，向右长会顶出屏幕。 */
+#live2d {
+  transform: scale(var(--waifu-zoom, 1));
+  transform-origin: bottom right;
+}
+
 @media (min-width: 1024px) {
   /* 看板娘挪进右栏，落在 B 站播放器（标题 / 画面 / 上一首·下一首）下方，
      高度由 Heatmap 卡片同步（见 Base.astro 的 syncWaifuSize） */

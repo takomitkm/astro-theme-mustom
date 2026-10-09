@@ -326,6 +326,15 @@ html.is-loading body {
   }
 }
 
+/* 自动滚动进行中：整页换成自动滚动光标。
+   要 !important —— 各组件的 scoped cursor 规则同样带 (0,2,0) 权重却写在后面，
+   不加会被它们盖掉。 */
+html.autoscrolling,
+html.autoscrolling * {
+  cursor: url('/images/cursor/autoscroll.svg') 16 16, auto !important;
+  user-select: none;
+}
+
 /* 看板娘可拖动，按下拖动时用四向移动指针 */
 #waifu,
 #live2d,
