@@ -122,6 +122,26 @@ const withEn = site.languages.includes('en-US');
   .list :global(.item-info) {
     z-index: 1;
     position: relative;
+    // 悬浮阴影（照搬 sakura BlogList.vue 的 .card）：
+    // 静息 0 1px 20px -6px，悬浮 0 5px 10px 5px，0.3s 过渡。
+    // 挂在 .item-info 而不是 .list-item 上：.list-item 的 ::after 承担着
+    // 条目之间的分隔符，给它加圆角阴影会把分隔线一起框进去。
+    border-radius: $borderRadius;
+    box-shadow: 0 1px 20px -6px rgb(0 0 0 / 50%);
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 5px 10px 5px rgb(0 0 0 / 20%);
+    }
+
+    // sakura 在 720px 以下是把这层阴影整个去掉的，窄屏也跟着关
+    @media (max-width: $smallestWidth) {
+      box-shadow: none;
+
+      &:hover {
+        box-shadow: none;
+      }
+    }
 
     :global(div),
     :global(p) {

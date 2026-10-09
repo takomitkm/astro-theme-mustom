@@ -123,6 +123,25 @@ const withEn = site.languages.includes('en-US');
   .item-content {
     padding-top: 1.25rem;
     padding-right: 1rem;
+    // 悬浮阴影（照搬 sakura BlogList.vue 的 .card）：
+    // 静息 0 1px 20px -6px，悬浮 0 5px 10px 5px，0.3s 过渡。
+    // 同样挂在内容块而不是 .list-item 上，理由见 Recent.astro。
+    border-radius: $borderRadius;
+    box-shadow: 0 1px 20px -6px rgb(0 0 0 / 50%);
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 5px 10px 5px rgb(0 0 0 / 20%);
+    }
+
+    // sakura 在 720px 以下是把这层阴影整个去掉的，窄屏也跟着关
+    @media (max-width: $smallestWidth) {
+      box-shadow: none;
+
+      &:hover {
+        box-shadow: none;
+      }
+    }
   }
 
   .content-title {

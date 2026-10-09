@@ -103,6 +103,16 @@ export const menus = [
   },
 ];
 
+/** 顶栏居中菜单 —— 模仿 vitepress-theme-sakura 的 header（居中绝对定位 + 图标 + 文字）。
+ *  和左侧抽屉的 menus 分开配置：抽屉那份刻意不含「首页」（首页走站名/Logo），
+ *  顶栏这份是四个主入口都列全。 */
+export const headerMenu = [
+  { text: { 'zh-CN': '首页', 'en-US': 'Home' }, icon: 'home', link: abs('/') },
+  { text: { 'zh-CN': '归档', 'en-US': 'Archive' }, icon: 'archive', link: abs('/archive/') },
+  { text: { 'zh-CN': '关于', 'en-US': 'About' }, icon: 'user', link: abs('/about/') },
+  { text: { 'zh-CN': '直播间', 'en-US': 'Live' }, icon: 'video', link: abs('/live/') },
+];
+
 /** 门户页（顶栏左侧按钮展开）：icon 为图片路径；install: true 的项是 PWA 安装按钮 */
 export const portals: Array<{
   name: string;

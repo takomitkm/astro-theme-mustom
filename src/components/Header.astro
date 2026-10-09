@@ -1,9 +1,12 @@
 ---
 // 顶栏 —— 对应 Header.vue + Hexo 版 xdrawer/xaside：
-// 左侧抽屉总开关、门户、搜索、右栏总开关（每侧一个折叠逻辑）
-// 站名文字已按要求移除，中列只留一个空占位（config 里的 header.sitename 暂留备用）
+// 左侧抽屉总开关、门户、居中主菜单、搜索、右栏总开关（每侧一个折叠逻辑）
+// 中列从原来的空占位换成居中菜单，样式参考 vitepress-theme-sakura 的 header
 import Icon from './Icon.astro';
-import { header } from '../config';
+import T from './T.astro';
+import { header, headerMenu } from '../config';
+import { site } from '../config';
+const withEn = site.languages.includes('en-US');
 ---
 
 <div class="Header">
@@ -17,8 +20,25 @@ import { header } from '../config';
       </button>
     )
   }
-  {/* 站名文字按要求删掉，留一个纯占位格维持 grid 列宽与左右按钮对称 */}
-  <div class="sitename"></div>
+  {/* 居中主菜单（照搬 sakura 的 .container：绝对居中 + 图标 + 文字）。
+      这一格是 grid 的 auto 列，左右各两格等宽的固定列，所以天然就是视口正中，
+      不用再套一层 absolute。 */}
+  <nav class="nav">
+    <ul>
+      {
+        headerMenu.map((item) => (
+          <li>
+            <a href={item.link}>
+              <span>
+                <Icon name={item.icon} fw />
+                <T zh={item.text['zh-CN']} en={withEn ? item.text['en-US'] : undefined} />
+              </span>
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
   {
     header.search && (
       <button type="button" class="ext" data-ext="search" aria-label="Search">
@@ -40,7 +60,11 @@ import { header } from '../config';
     width: 100%;
     height: $headerHeight;
     color: var(--header);
+    // 半透明（sakura 的 header 是 rgba(255,255,255,0.9)）。
+    // 用 color-mix 从各皮肤的 --header-bg 推出来，三个皮肤自动都对；
+    // 前一行是给不支持 color-mix 的旧浏览器兜底的不透明底色。
     background: var(--header-bg);
+    background: color-mix(in srgb, var(--header-bg) 88%, transparent);
     box-shadow: 0 $borderRadius * -0.5 $borderRadius var(--header);
     display: grid;
     grid-template-columns: $headerHeight $headerHeight auto $headerHeight $headerHeight;
@@ -51,72 +75,65 @@ import { header } from '../config';
     }
   }
 
-  .sitename,
-  .ext {
-    transition: background 0.6s, color 0.6s;
-  }
-
-  .sitename {
-    text-align: center;
-    white-space: nowrap;
+  /* ---------- 居中主菜单 ---------- */
+  .nav {
+    height: $headerHeight;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: $headerHeight;
-    font-size: calc(#{$headerHeight} / 3);
 
-    @media (max-width: $smallestWidth) {
-      font-size: calc(#{$headerHeight} / 4);
+    ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      align-items: center;
     }
 
-    font-weight: 555;
-    user-select: none;
+    li {
+      // sakura 原版是 margin: 0 12px，这里按 rem 跟随根字号
+      margin: 0 0.75rem;
+      white-space: nowrap;
+    }
 
-    // 站名整条是回首页链接（Hexo fork 的 sitename 改造）
-    :global(a.sitename-link) {
+    a {
       color: inherit;
+      transition: color 0.2s ease-out;
 
+      // 全局 a::before 的下划线在导航里太吵，去掉
       &::before {
         display: none;
       }
-    }
 
-    :global(em),
-    :global(strong) {
-      display: inline-block;
-      position: relative;
-      font-style: normal;
-    }
-    :global(em + strong),
-    :global(strong + em) {
-      margin-left: 0.5rem;
-    }
-    :global(em) :global(span) {
-      display: inline-block;
-      margin: 0 0.1rem;
-      transform: scale(1.1);
-    }
-    :global(strong) {
-      position: relative;
-      padding: 0 0.5rem;
-      color: var(--readme-more-txt);
-
-      &::before {
-        content: '';
-        position: absolute;
-        top: calc(#{$headerHeight} / 5); // 1px offset manually set
-        left: 0;
-        height: calc(#{$headerHeight} / 5 * 3);
-        width: 100%;
-        background: var(--link);
-        border-radius: $borderRadius * 1.5;
-        z-index: -1;
+      &:hover {
+        color: var(--underline);
       }
 
-      :global(span) {
-        position: relative;
-        color: var(--readme-more-txt);
+      > span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      :global(svg) {
+        font-size: 0.85em;
       }
     }
+
+    // 窄屏塞不下四个带图标的按钮，退回纯文字
+    @media (max-width: $smallestWidth) {
+      li {
+        margin: 0 0.4rem;
+      }
+      a > span :global(svg) {
+        display: none;
+      }
+    }
+  }
+
+  .ext {
+    transition: background 0.6s, color 0.6s;
   }
 
   .ext {
