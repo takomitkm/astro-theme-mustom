@@ -118,7 +118,12 @@ const withEn = site.languages.includes('en-US');
     padding-bottom: 56.25%;
     background: #000;
 
-    > iframe {
+    /* iframe 由 JS document.createElement 动态创建，拿不到 Astro 编译时注入的
+       data-astro-cid-* 作用域属性，所以这条选择器里的 iframe 必须 :global()。
+       写成 `> iframe` 的话整条规则匹配不上：iframe 退回 position:static 与
+       默认 300x150 尺寸，而 padding-bottom 的 56.25% 占位仍在，
+       于是视频只剩顶上 154px、下面空出一大块黑色。 */
+    :global(iframe) {
       position: absolute;
       top: 0;
       left: 0;
