@@ -248,6 +248,14 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
     const N = 90;
     const MAX_DPR = 1; // 见上，粒子够粗，DPR 再高只是白烧 clearRect
 
+    /* 整体缩放：尺寸、 初速、 重力按同一比例缩小，轨迹形状不变、时长不变。
+       （距离和重力同比例缩放时，飞行时间 t ∝ sqrt(d/g) 正好抵消，所以
+        life 的衰减率不用动。）调大小只改这一个数。 */
+    const SCALE = 1 / 3;
+    const GRAVITY = 0.16 * SCALE;
+    const LIFT = 1.4 * SCALE; // 初速的略带上抛
+    const EDGE = 40 * SCALE; // 飞出这个余量就直接判死
+
     let raf = 0;
     let ps: P[] = [];
     let cw = 0;
@@ -276,12 +284,12 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
       for (const p of ps) {
         if (p.life <= 0) continue;
         // 飞出画布就直接判死，不必等寿命跑完
-        if (p.x < -40 || p.x > cw + 40 || p.y > ch + 40) {
+        if (p.x < -EDGE || p.x > cw + EDGE || p.y > ch + EDGE) {
           p.life = 0;
           continue;
         }
         alive++;
-        p.vy += 0.16; // 重力
+        p.vy += GRAVITY;
         p.vx *= 0.99;
         p.vy *= 0.99;
         p.x += p.vx;
@@ -322,14 +330,14 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
       for (let i = 0; i < N; i++) {
         // 均匀取角度 + 随机初速，得到一圈炸开的火花
         const a = (Math.PI * 2 * i) / N + Math.random() * 0.3;
-        const sp = 1.6 + Math.random() * 5.5;
+        const sp = (1.6 + Math.random() * 5.5) * SCALE;
         ps.push({
           x: cx,
           y: cy,
           vx: Math.cos(a) * sp,
-          vy: Math.sin(a) * sp - 1.4, // 略带上抛
+          vy: Math.sin(a) * sp - LIFT,
           life: 1,
-          size: 2 + Math.random() * 3.5,
+          size: (2 + Math.random() * 3.5) * SCALE,
           color: colors[i % colors.length] || '#888',
           spin: (Math.random() - 0.5) * 0.5,
           rot: Math.random() * Math.PI,
