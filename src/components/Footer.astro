@@ -57,21 +57,18 @@ const withEn = site.languages.includes('en-US');
       <span id="busuanzi_value_site_uv">∞</span>
       <em class="tip"><T zh={zhCN.footer.tipUv} en={withEn ? enUS.footer.tipUv : undefined} /></em>
     </span>
+    {/* 访问计数图：放在 pv/uv 这一行里（原来错做成右下角浮层，压在看板娘那边） */}
+    <img
+      class="getloli"
+      src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
+      alt="site counter"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+    />
   </div>
   <div class="license">
     <a class="by-nc-sa" target="_blank" href={license.url} title={zhCN.footer.license} style={`background-image:url('${license.badge}')`}></a>
   </div>
-</div>
-
-{/* 计数器图片（右对齐）：取代原来页脚里的 pv/uv/字数 三个数字中可被它替代的部分，
-    现已把字数项整个删掉，只留 pv/uv。 */}
-<div class="Footer-counter">
-  <img
-    src="https://count.getloli.com/@tkmblog?theme=original-new&padding=5&offset=0&align=top&scale=1.0&pixelated=1&darkmode=auto"
-    alt="site counter"
-    loading="lazy"
-    referrerpolicy="no-referrer"
-  />
 </div>
 
 {/* 不蒜子官方脚本（替换自写 JSONP）；脚本不可达时数值保持 ∞ */}
@@ -83,13 +80,12 @@ const withEn = site.languages.includes('en-US');
 
   .Footer {
     user-select: none;
-    // 原有元素整体靠左，右侧留给计数器图片（.Footer-counter）
+    // 原有元素整体靠左
     text-align: left;
     background: var(--bg);
     padding: 0.75rem calc(1rem + #{$borderRadius}) 0.5rem;
     border-radius: $borderRadius $borderRadius 0 0;
     position: relative;
-    margin-right: 12rem; // 给右下的计数器图让位
     overflow: hidden;
     font-size: 0.9rem;
 
@@ -114,7 +110,7 @@ const withEn = site.languages.includes('en-US');
     padding-top: 0.25rem;
     display: flex;
     flex-wrap: wrap;
-    justify-content: flex-start;
+    justify-content: center;
     gap: $gap * 0.5;
 
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
@@ -191,29 +187,13 @@ const withEn = site.languages.includes('en-US');
       }
     }
   }
-</style>
 
-<style lang="scss">
-  // 计数器图片：固定在页脚右下角，页脚原有内容整体左移给它让位
-  .Footer-counter {
-    position: fixed;
-    right: 0;
-    bottom: 0;
-    z-index: 961; // 与 Random/Goingto 同层，浮在页脚之上
-    padding: 0.5rem;
-    display: flex;
-    align-items: flex-end;
-    pointer-events: none;
-
-    img {
-      display: block;
-      height: auto;
-      max-height: 90px;
-      border-radius: $borderRadius;
-    }
-
-    @media (max-width: $smallestWidth) {
-      display: none;
-    }
+  // 访问计数图：跟在 pv/uv 后面，不占额外的一行
+  .getloli {
+    display: inline-block;
+    height: auto;
+    max-height: 2.5rem;
+    vertical-align: middle;
+    border-radius: $borderRadius;
   }
 </style>

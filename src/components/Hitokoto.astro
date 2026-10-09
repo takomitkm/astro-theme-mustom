@@ -222,7 +222,14 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
 
   /* ---------- 点击迸发粒子 ----------
      参考实现里没有这部分，是自己加的：在点击点生成一批彩色小方块，
-     带初速度与重力飞散，落到卡片外或寿命结束就移除画布。 */
+     带初速度与重力飞散，寿命结束就清空画布。
+
+     性能上有三处刻意压成本：
+     1) rAF 句柄与粒子数组提到 burst 外面 —— 原先写在 burst 内部，
+        cancelAnimationFrame 取消的永远是 0，连点会叠加出多个动画循环；
+     2) 画布 DPR 封顶 1 —— 粒子本来就是粗方块，用不着视网膜密度，
+        而 clearRect 的开销与像素数成正比（视网膜屏上直接省 4 倍）；
+     3) 每个粒子用 setTransform 取代 save()/restore()，少一层状态栈出入。 */
   const card = document.querySelector<HTMLElement>('.Hitokoto');
   const fx = card?.querySelector<HTMLCanvasElement>('.fx');
 
@@ -238,7 +245,16 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
       spin: number;
       rot: number;
     }
-    const palette = () => {
+    const N = 90;
+    const MAX_DPR = 1; // 见上，粒子够粗，DPR 再高只是白烧 clearRect
+
+    let raf = 0;
+    let ps: P[] = [];
+    let cw = 0;
+    let ch = 0;
+    const ctx = fx.getContext('2d');
+
+    const palette = (): string[] => {
       const cs = getComputedStyle(card!);
       const vars = ['--link', '--selection', '--link-markdown', '--underline', '--readme-more-bg', '--readme-more-warn'];
       // 去重：黑白皮肤里 --link 与 --underline 同色，不去重的话粒子几乎是一个颜色
@@ -248,28 +264,61 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
         if (c) seen.add(c);
       }
       const list = [...seen];
-      // 三个皮肤的可选色都不够时，补两个固定色，保证炸开有层次
       while (list.length < 3) list.push(list[list.length % Math.max(1, list.length)] ?? '#999');
       return list.length ? list : ['#999'];
     };
 
-    const burst = (ev: MouseEvent) => {
-      const box = card!.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      fx!.width = Math.round(box.width * dpr);
-      fx!.height = Math.round(box.height * dpr);
-      fx!.style.width = box.width + 'px';
-      fx!.style.height = box.height + 'px';
-      const ctx = fx!.getContext('2d');
+    const tick = () => {
+      raf = 0;
       if (!ctx) return;
+      ctx.clearRect(0, 0, cw, ch);
+      let alive = 0;
+      for (const p of ps) {
+        if (p.life <= 0) continue;
+        // 飞出画布就直接判死，不必等寿命跑完
+        if (p.x < -40 || p.x > cw + 40 || p.y > ch + 40) {
+          p.life = 0;
+          continue;
+        }
+        alive++;
+        p.vy += 0.16; // 重力
+        p.vx *= 0.99;
+        p.vy *= 0.99;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.spin;
+        p.life -= 0.014;
+        ctx.setTransform(1, 0, 0, 1, p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      }
+      if (alive > 0) raf = requestAnimationFrame(tick);
+      else {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = 1;
+        ctx.clearRect(0, 0, cw, ch);
+      }
+    };
+
+    const burst = (ev: MouseEvent) => {
+      if (!ctx) return;
+      const box = card!.getBoundingClientRect();
+      cw = box.width;
+      ch = box.height;
+      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+      fx!.width = Math.round(cw * dpr);
+      fx!.height = Math.round(ch * dpr);
+      fx!.style.width = cw + 'px';
+      fx!.style.height = ch + 'px';
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, box.width, box.height);
+      ctx.clearRect(0, 0, cw, ch);
 
       const colors = palette();
       const cx = ev.clientX - box.left;
       const cy = ev.clientY - box.top;
-      const ps: P[] = [];
-      const N = 90;
+      ps = [];
       for (let i = 0; i < N; i++) {
         // 均匀取角度 + 随机初速，得到一圈炸开的火花
         const a = (Math.PI * 2 * i) / N + Math.random() * 0.3;
@@ -286,33 +335,8 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
           rot: Math.random() * Math.PI,
         });
       }
-
-      let raf = 0;
-      const tick = () => {
-        ctx.clearRect(0, 0, box.width, box.height);
-        let alive = 0;
-        for (const p of ps) {
-          if (p.life <= 0) continue;
-          alive++;
-          p.vy += 0.16; // 重力
-          p.vx *= 0.99;
-          p.vy *= 0.99;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.rot += p.spin;
-          p.life -= 0.014;
-          ctx.save();
-          ctx.translate(p.x, p.y);
-          ctx.rotate(p.rot);
-          ctx.globalAlpha = Math.max(0, Math.min(1, p.life));
-          ctx.fillStyle = p.color;
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
-          ctx.restore();
-        }
-        if (alive > 0) raf = requestAnimationFrame(tick);
-        else ctx.clearRect(0, 0, box.width, box.height);
-      };
-      cancelAnimationFrame(raf);
+      // 重复点击只是把上一波换掉，不会多开循环
+      if (raf) cancelAnimationFrame(raf);
       raf = requestAnimationFrame(tick);
     };
 
