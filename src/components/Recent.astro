@@ -85,6 +85,29 @@ const withEn = site.languages.includes('en-US');
   .list :global(.list-item) {
     position: relative;
     padding: $gap $gap calc(#{$gap} - 0.25rem);
+    // 悬浮阴影（照搬 sakura BlogList.vue 的 .card）：
+    // 静息 0 1px 20px -6px，悬浮 0 5px 10px 5px，0.3s 过渡。
+    //
+    // 挂在 .list-item 而不是里面的 .item-info：.item-info 只包住正文，
+    // 左右各比整栏窄 32px（实测 1052 vs 满栏 1116），阴影框看着缩在里面；
+    // 而 .list-item 本身就是满宽满高，且相邻条目之间间距为 0，
+    // 所以阴影盒上下天然首尾相接，正是要的「无缝衔接」。
+    border-radius: $borderRadius;
+    box-shadow: 0 1px 20px -6px rgb(0 0 0 / 50%);
+    transition: box-shadow 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 5px 10px 5px rgb(0 0 0 / 20%);
+    }
+
+    // sakura 在 720px 以下是把这层阴影整个去掉的，窄屏也跟着关
+    @media (max-width: $smallestWidth) {
+      box-shadow: none;
+
+      &:hover {
+        box-shadow: none;
+      }
+    }
 
     @media (max-width: $smallestWidth) {
       padding: 1rem 1rem 0.75rem;
@@ -96,10 +119,12 @@ const withEn = site.languages.includes('en-US');
 
     // 自定义分隔符：坐在条目之间那道缝（原 border-bottom）里，不再压在条目开头；
     // 绝对定位的包含块是 .list-item 的 padding 盒，本就等于整栏宽度，
-    // 所以 left/right 取 0 正好顶满正文栏，不该再往外扩
+    // 所以 left/right 取 0 正好顶满正文栏，不该再往外扩。
+    // z-index 抬到 .item-info(1) 之上，免得被阴影盒盖住。
     &:not(:last-child)::after {
       content: var(--divider, '✟⫘⫘⫘⫘⫘⫘⫘⫘✟');
       position: absolute;
+      z-index: 2;
       left: 0;
       right: 0;
       bottom: -0.125rem;
@@ -122,26 +147,7 @@ const withEn = site.languages.includes('en-US');
   .list :global(.item-info) {
     z-index: 1;
     position: relative;
-    // 悬浮阴影（照搬 sakura BlogList.vue 的 .card）：
-    // 静息 0 1px 20px -6px，悬浮 0 5px 10px 5px，0.3s 过渡。
-    // 挂在 .item-info 而不是 .list-item 上：.list-item 的 ::after 承担着
-    // 条目之间的分隔符，给它加圆角阴影会把分隔线一起框进去。
-    border-radius: $borderRadius;
-    box-shadow: 0 1px 20px -6px rgb(0 0 0 / 50%);
-    transition: box-shadow 0.3s ease;
-
-    &:hover {
-      box-shadow: 0 5px 10px 5px rgb(0 0 0 / 20%);
-    }
-
-    // sakura 在 720px 以下是把这层阴影整个去掉的，窄屏也跟着关
-    @media (max-width: $smallestWidth) {
-      box-shadow: none;
-
-      &:hover {
-        box-shadow: none;
-      }
-    }
+    // 阴影已挪到 .list-item 上（见上）：这里只留内容本身的排版
 
     :global(div),
     :global(p) {

@@ -110,7 +110,8 @@ const withEn = site.languages.includes('en-US');
     padding-top: 0.25rem;
     display: flex;
     flex-wrap: wrap;
-    justify-content: center;
+    // 与页脚其余元素一致靠左
+    justify-content: flex-start;
     gap: $gap * 0.5;
 
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
@@ -166,9 +167,9 @@ const withEn = site.languages.includes('en-US');
 
   .license {
     padding-top: 0.5rem;
-    // 徽章与访问计数图并排，底边对齐
+    // 徽章在左、访问计数图推到最右；stretch 让计数图高度等于整条栏
     display: flex;
-    align-items: flex-end;
+    align-items: stretch;
     gap: $gap * 0.5;
     @media (max-width: $smallWidth) and (min-width: $smallerWidth) {
       position: absolute;
@@ -192,12 +193,13 @@ const withEn = site.languages.includes('en-US');
     }
   }
 
-  // 访问计数图：与 CC 徽章同在授权栏，高度对齐徽章（$footerLicenseHeight）
+  // 访问计数图：整条底栏最右侧，与栏内所有元素并列；
+  // 高度不写死，用 align-self: stretch 撑满整条栏（栏高由徽章决定）
   .getloli {
-    display: inline-block;
-    height: $footerLicenseHeight;
+    margin-left: auto; // 推到最右
+    align-self: stretch;
+    height: auto;
     width: auto;
-    vertical-align: middle;
     border-radius: $borderRadius;
     image-rendering: pixelated;
 

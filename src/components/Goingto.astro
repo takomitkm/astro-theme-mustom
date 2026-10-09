@@ -117,7 +117,9 @@ import { abs } from '../config';
     --sak: #be493e; // 柱身与横梁的红褐
     --sak-dk: #8c3329; // 斜纹里的暗部
     --ink: #060102; // 描边用的近黑
-    --paper: #fff; // 门身白
+    // 门身颜色分皮肤：浅色皮肤下纯白件压在白底上完全看不见，
+    // 改成与柱身同色但略偏红（#be493e 的色相 5.2° 收到 2.5°、饱和度略提）。
+    --paper: #c03f39;
 
     position: fixed;
     width: 70px;
@@ -204,13 +206,15 @@ import { abs } from '../config';
     clip-path: polygon(100% 0, 0 100%, 100% 100%);
   }
 
-  // 梁面上那几道深色短竖线（原图里就有的装饰笔画）
+  // 梁面上那几道深色短竖线（原图里就有的装饰笔画）。
+// 用半透明墨色而不是固定灰：门身改成红褐色后固定灰压在上面几乎看不见，
+// 半透明墨色在红底上是深红、在白底上是灰，两种皮肤都成立。
   .marks {
     left: 52%;
     top: 9px;
     width: 14px;
     height: 8px;
-    background: repeating-linear-gradient(to right, #5c5c5c 0 2px, transparent 2px 5px);
+    background: repeating-linear-gradient(to right, rgb(6 1 2 / 55%) 0 2px, transparent 2px 5px);
   }
 
   // 两根立柱：用一个元素画两条，中间是空的
@@ -265,6 +269,12 @@ import { abs } from '../config';
   .base {
     filter: drop-shadow(1px 0 0 var(--ink, #060102)) drop-shadow(-1px 0 0 var(--ink, #060102))
       drop-shadow(0 1px 0 var(--ink, #060102)) drop-shadow(0 -1px 0 var(--ink, #060102));
+  }
+
+  // 夜间皮肤保留原来的白色门身：黑底上白件才看得清，
+  // 换成红褐色反而和柱身糊在一起。特异性高于上面的 .totop，能覆盖 --paper。
+  :global(html.skin-night) .totop {
+    --paper: #fff;
   }
 
   @keyframes skeuo-float {
