@@ -11,11 +11,14 @@ export function initHitokoto(): void {
   const fromEl = card.querySelector<HTMLElement>('.from span');
   if (!wordEl || !fromEl) return;
 
-  // 故障风靠 attr(data-text) 取文本，句子换了要同步更新，否则两层伪元素还留着旧句子
-  const glitch = wordEl.querySelector<HTMLElement>('.glitch');
+  // 故障风由「底字 + 三条切片」组成，切片靠 attr(data-text) 取文本，
+  // 换句时底字和每条切片都要一起更新，否则切片里还留着旧句子
   const setWord = (text: string) => {
-    wordEl.querySelector<HTMLElement>('.glitch')!.textContent = text;
-    (glitch ?? wordEl).dataset.text = text;
+    const base = wordEl.querySelector<HTMLElement>('.glitch-text');
+    if (base) base.textContent = text;
+    wordEl.querySelectorAll<HTMLElement>('.glitch-slice').forEach((slice) => {
+      slice.dataset.text = text;
+    });
   };
 
   const { api, type, customs, placeholder } = mustomConfig().hitokoto ?? {};

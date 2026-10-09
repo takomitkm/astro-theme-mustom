@@ -7,6 +7,8 @@ import { zhCN, enUS } from '../lib/locales';
 import { site } from '../config';
 
 const withEn = site.languages.includes('en-US');
+/** 故障风的切片条数：上/中/下各一条 */
+const GLITCH_BANDS = [0, 1, 2];
 const before = images.hitokotoLeft ? `background-image:url('${images.hitokotoLeft}')` : undefined;
 const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRight}')` : undefined;
 ---
@@ -19,11 +21,15 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
   <div class="inner">
     <div class="before" style={before}></div>
     <div class="word">
-      {/* 单独包一层 .glitch：.word 的 ::before/::after 已被『』括号占用，
-          故障风的两层错位色要用自己的伪元素 */}
-      <span class="glitch" data-text={hitokoto.placeholder?.word ?? 'Loading...'}
-        >{hitokoto.placeholder?.word ?? 'Loading...'}</span
-      >
+      {/* 故障风：底字 + 三条横向切片。切片由 Array.from 渲染（不靠伪元素），
+          各自只露出上/中/下三分之一，悬浮时逐帧横向撕裂。
+          .word 的 ::before/::after 已被『』括号占用，所以整块要自己包一层。 */}
+      <span class="glitch">
+        <span class="glitch-text">{hitokoto.placeholder?.word ?? 'Loading...'}</span>
+        {GLITCH_BANDS.map((band) => (
+          <i class="glitch-slice" data-band={band} data-text={hitokoto.placeholder?.word ?? 'Loading...'} aria-hidden="true" />
+        ))}
+      </span>
     </div>
     <div class="from"><span>{hitokoto.placeholder?.from ?? 'Loading...'}</span></div>
     <div class="after" style={after}></div>
@@ -128,80 +134,101 @@ const after = images.hitokotoRight ? `background-image:url('${images.hitokotoRig
     }
   }
 
-  /* ---------- 故障风（参考 vitepress-theme-sakura 的 GlitchText.vue） ----------
-     静止时两层伪元素 clip 成 0；鼠标悬浮才跑 glitch-loop，红/青两层左右错位抖动。
-     字号沿用卡片的 1.25rem（sakura 原版是 80px 的大标题，这里是卡片内的小字）。 */
+  /* ---------- 故障风 ----------
+     三条横向切片各自只露出上/中/下三分之一，悬浮时用 steps() 逐帧横向撕裂。
+     与参考实现的差别（也是刻意拉开距离的地方）：
+       - 参考是「两层伪元素 + 纵向色带扫描 + 平滑 ease-in-out 往返」，
+         这里改成「三条切片 + 横向位移 + steps() 数字撕裂」，结构与观感都不同
+       - 切片由 Astro 模板 Array.from 渲染，不靠伪元素
+       - 颜色取主题变量并按切片错开，不硬编码 */
   .glitch {
     position: relative;
     display: inline-block;
     font-weight: 700;
 
-    &::before,
-    &::after {
-      content: attr(data-text);
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      pointer-events: none;
-      clip-path: inset(100% 0 0 0);
+    // 底字：正常显示，不需要动画
+    .glitch-text {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
+  .glitch-slice {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+
+    // 三条分别只露出上/中/下三分之一
+    &[data-band='0'] {
+      clip-path: inset(0 0 66% 0);
+    }
+    &[data-band='1'] {
+      clip-path: inset(34% 0 33% 0);
+    }
+    &[data-band='2'] {
+      clip-path: inset(67% 0 0 0);
     }
 
     &::before {
-      text-shadow: 2px 0 var(--selection);
+      content: attr(data-text);
+      position: absolute;
+      inset: 0;
+      padding: 0;
     }
 
-    &::after {
-      text-shadow: -2px 0 var(--link-markdown);
+    // 三条各一个颜色，且在 jshine / whiteblack / night 三套皮肤下都互不相同：
+    // --selection 与 --underline 在黑白皮肤里同为 #ff3300，用后者会让两条撞色
+    &[data-band='0']::before {
+      color: var(--selection);
     }
-
-    &:hover::before {
-      animation: glitch-loop-1 0.8s infinite ease-in-out alternate-reverse;
+    &[data-band='1']::before {
+      color: var(--link-markdown);
     }
-
-    &:hover::after {
-      animation: glitch-loop-2 0.8s infinite ease-in-out alternate-reverse;
+    &[data-band='2']::before {
+      color: var(--readme-more-warn);
     }
   }
 
-  @keyframes glitch-loop-1 {
-    0% {
-      clip-path: inset(20% 0 72% 0);
+  .glitch:hover .glitch-slice {
+    opacity: 0.85;
+    // steps() 让位移一格一格跳，做出数字信号撕裂的感觉；
+    // 三条各错开一点相位，避免三条完全同步
+    animation: glitch-tear 0.42s steps(5, end) infinite;
+
+    &[data-band='1'] {
+      animation-delay: -0.14s;
     }
-    25% {
-      clip-path: inset(58% 0 24% 0);
-    }
-    50% {
-      clip-path: inset(38% 0 46% 0);
-    }
-    75% {
-      clip-path: inset(70% 0 12% 0);
-    }
-    100% {
-      clip-path: inset(12% 0 80% 0);
+    &[data-band='2'] {
+      animation-delay: -0.28s;
     }
   }
 
-  @keyframes glitch-loop-2 {
+  @keyframes glitch-tear {
     0% {
-      top: -1px;
-      clip-path: inset(46% 0 36% 0);
+      transform: translate3d(0, 0, 0);
     }
-    25% {
-      top: -3px;
-      clip-path: inset(72% 0 12% 0);
+    20% {
+      transform: translate3d(-0.09em, 0, 0);
     }
-    50% {
-      top: -2px;
-      clip-path: inset(26% 0 58% 0);
+    40% {
+      transform: translate3d(0.07em, 0, 0);
     }
-    75% {
-      top: 0;
-      clip-path: inset(84% 0 6% 0);
+    60% {
+      transform: translate3d(-0.05em, 0, 0);
+    }
+    80% {
+      transform: translate3d(0.04em, 0, 0);
     }
     100% {
-      top: -1px;
-      clip-path: inset(34% 0 52% 0);
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .glitch:hover .glitch-slice {
+      animation: none;
     }
   }
 
