@@ -1,0 +1,1 @@
+import{m as e}from"./config.BHZ40Wi3.js";function i(){const n=document.querySelector(".NotFound .inner .path");if(!n)return;const{notfound:t}=e().strings,o=(document.documentElement.classList.contains("lang-en")?t["en-US"]:t["zh-CN"]).replace("[:path:]",window.location.pathname);n.textContent=o}i();
