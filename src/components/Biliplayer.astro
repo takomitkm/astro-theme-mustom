@@ -14,6 +14,8 @@ const withEn = site.languages.includes('en-US');
   <div class="caption player-caption">
     <span class="caption-text">
       <T zh={zhCN.biliplayer.caption} en={withEn ? enUS.biliplayer.caption : undefined} />
+      {/* 歌单位置（第几首 / 共几首）跟着标题走，不占中间那条导航行 */}
+      <span class="now-pos"></span>
     </span>
     <span class="ops">
       <button type="button" class="off-btn" aria-label="Close">×</button>
@@ -37,7 +39,16 @@ const withEn = site.languages.includes('en-US');
     <button type="button" class="prev" title={zhCN.biliplayer.prev} aria-label={zhCN.biliplayer.prev}>
       <span aria-hidden="true">&lt;</span>
     </button>
-    <span class="now"></span>
+    <span class="now">
+      {/* 窄屏兜底：≤1016px 播放器被搬进一言卡时，首栏「我的歌单」会被
+          skin.scss 整条 display:none（× 在手机上关不掉），此时首栏那份
+          歌单位置跟着一起没了，所以这里再放一份，由 CSS 决定显示哪一份。
+          类名刻意不叫 now-pos：Astro 编译作用域时会把 `.now .now-pos`
+          的祖先 `.now` 丢掉（产物只剩 .now-pos[cid]），那条隐藏规则会
+          连带把首栏那份也一起隐藏。 */}
+      <span class="now-pos-in-nav"></span>
+      <span class="now-code"></span>
+    </span>
     <button type="button" class="next" title={zhCN.biliplayer.next} aria-label={zhCN.biliplayer.next}>
       <span aria-hidden="true">&gt;</span>
     </button>
@@ -86,7 +97,22 @@ const withEn = site.languages.includes('en-US');
     }
     > .ops {
       flex: none;
+      // × 往右靠：这里不再留 .caption 的 0.75rem 右内边距，贴着右边一点
+      margin-right: -0.45rem;
     }
+  }
+
+  /* 首栏里的「第几首 / 共几首」：跟在标题后面，稍小一号、压低一点亮度 */
+  .player-caption .now-pos {
+    margin-left: 0.5em;
+    font-size: 0.85em;
+    opacity: 0.75;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 导航行里那份是窄屏兜底，宽屏隐藏（宽屏看首栏那份） */
+  .now-pos-in-nav {
+    display: none;
   }
 
   .bili-player button {
@@ -312,17 +338,16 @@ const withEn = site.languages.includes('en-US');
     const render = () => {
       const item = current();
       if (!item) return;
-      // 两行：第一行 bvid/avid，第二行只留歌单位置数字
-      const slot = q<HTMLElement>('.now')!;
-      slot.innerHTML = '';
-      const code = document.createElement('span');
-      code.className = 'now-code';
-      code.textContent = item.bvid || ('av' + (item.aid ?? '')) || '—';
-      const pos = document.createElement('span');
-      pos.className = 'now-pos';
+      // 两份都写：宽屏显示首栏那份，窄屏（首栏被整条隐藏）显示导航行那份
       const at = index + 1;
-      pos.textContent = `${at} / ${list.length}`;
-      slot.append(code, pos);
+      const posText = `${at} / ${list.length}`;
+      document
+        .querySelectorAll<HTMLElement>('.player-caption .now-pos, .now-pos-in-nav')
+        .forEach((el) => {
+          el.textContent = posText;
+        });
+      const code = q<HTMLElement>('.now .now-code');
+      if (code) code.textContent = item.bvid || ('av' + (item.aid ?? '')) || '—';
     };
 
     // 播放器不会往父窗口发任何消息，外层既拿不到 ended 也拿不到进度。

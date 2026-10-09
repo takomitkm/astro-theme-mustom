@@ -159,6 +159,12 @@ html.wallpaper .GlobalLayout {
     .player-caption {
       display: none; // 手机版不显示"我的歌单"标题栏：一言卡已有标题，且 × 在手机上关不掉
     }
+
+    // 首栏藏了，首栏里那份「第几首 / 共几首」也跟着没了，
+    // 所以窄屏改显示导航行里的那份（Biliplayer 默认把它 display:none）
+    .now .now-pos-in-nav {
+      display: block;
+    }
   }
 
   // 作者行从绝对定位改常规流，避免压在比原图高得多的视频上
