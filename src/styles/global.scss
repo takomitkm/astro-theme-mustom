@@ -612,3 +612,101 @@ html.NO_LIVE2D {
 html.hide-player .Biliplayer {
   display: none !important;
 }
+
+/* ---------- 游戏卡片的能力标记（src/lib/client/detect.ts 打标） ----------
+   四态的视觉分工是她定的：判不了＝灰，明确不支持＝x 覆盖，站点限制＝x 但说法不同。
+   三态都不许吃掉点击：判错了访客还能自己试。
+   本文件不参与 Astro 组件作用域编译，JS 造出来的节点也没法带 data-astro-cid，
+   所以这些规则只能写在全局样式里，写进 GameGrid 的 <style> 会一条都匹配不上。 */
+.card[data-detect] {
+  position: relative;
+
+  .dt-badge {
+    position: absolute;
+    top: 0.45rem;
+    right: 0.45rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    padding: 0.08em 0.5em;
+    font: inherit;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    border-radius: $borderRadius;
+    background: var(--bg);
+    border: 1px solid currentColor;
+    appearance: none;
+    user-select: none;
+  }
+
+  // 只有带明细的角标是按钮（"未登记"那种没得展开，不做成可点）
+  .dt-badge[aria-controls] {
+    cursor: pointer;
+  }
+
+  .dt-badge[aria-controls]:hover {
+    opacity: 0.75;
+  }
+
+  // 原因明细：默认收起，点角标展开（触屏没有 hover，必须靠点）
+  .dt-why {
+    padding: 0.4rem 0.75rem 0.6rem;
+    margin: 0 0 0.4rem;
+    font-size: 0.72rem;
+    line-height: 1.6;
+    background: var(--highlight);
+    border-left: 3px solid currentColor;
+
+    p {
+      margin: 0.15em 0;
+      opacity: 0.8;
+    }
+  }
+}
+
+// 判不了：整卡去色压暗，角标灰。绝不写成"不支持"
+.card[data-detect='unknown'] {
+  filter: grayscale(1);
+  opacity: 0.55;
+
+  .dt-badge {
+    color: var(--txt);
+    opacity: 0.75;
+  }
+}
+
+// 明确不支持：右上角 x + 一条压在内容上的大 x 水印
+.card[data-detect='blocked'],
+.card[data-detect='site'] {
+  &::after {
+    content: '✕';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6rem;
+    line-height: 1;
+    pointer-events: none;
+    opacity: 0.18;
+  }
+
+  .dt-badge {
+    color: #e05c5c;
+  }
+}
+
+// 站点限制：形状一样但换色，且说法必须点明是托管设不了头，不是访客的机器不行
+.card[data-detect='site'] {
+  .dt-badge {
+    color: #e0a04c;
+  }
+
+  &::after {
+    color: #e0a04c;
+  }
+}
+

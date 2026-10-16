@@ -1,0 +1,41 @@
+---
+// 小游戏列表页 —— 卡片打标由 src/lib/client/detect.ts 在访客浏览器里现场完成
+import Base from '../layouts/Base.astro';
+import Article from '../components/Article.astro';
+import GameGrid from '../components/GameGrid.astro';
+import T from '../components/T.astro';
+import { site, abs } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const withEn = site.languages.includes('en-US');
+const L = zhCN.detect;
+const LE = enUS.detect;
+---
+
+<Base title={withEn ? 'Games' : '小游戏'}>
+  <Article title={L.games} isPost={false}>
+    <p class="dg-intro">
+      <T zh={L.intro} en={withEn ? LE.intro : undefined} />
+    </p>
+    <GameGrid />
+    <p class="dg-more">
+      <T
+        zh={`<a href="${abs('/device-check/')}">看完整读数</a>`}
+        en={withEn ? `<a href="${abs('/device-check/')}">Full readings</a>` : undefined}
+        html
+      />
+    </p>
+  </Article>
+</Base>
+
+<style lang="scss">
+  .dg-intro {
+    font-size: 0.85em;
+    opacity: 0.72;
+    margin-bottom: 1rem;
+  }
+  .dg-more {
+    margin-top: 1rem;
+    font-size: 0.82em;
+  }
+</style>

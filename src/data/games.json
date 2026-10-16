@@ -1,0 +1,111 @@
+[
+  {
+    "id": "dust",
+    "title": "尘埃",
+    "titleEn": "Dust",
+    "tags": [
+      "canvas2d",
+      "鼠标"
+    ],
+    "desc": "只吃 Canvas 2D 与指针事件，任何能开网页的设备都跑得动。",
+    "descEn": "Canvas 2D and pointer events only. Runs anywhere the page opens.",
+    "needs": {
+      "api": [
+        "PointerEvent"
+      ]
+    },
+    "prefers": {
+      "es": [
+        "Web Animations",
+        "requestIdleCallback"
+      ]
+    },
+    "sentinel": true
+  },
+  {
+    "id": "wasm-sim",
+    "title": "沙粒模拟",
+    "titleEn": "Sand Sim",
+    "tags": [
+      "wasm"
+    ],
+    "desc": "质量块用 wasm 的 v128 并行算，SIMD 字节码被拒就只能回退标量路径。",
+    "descEn": "The mass solver runs on wasm v128. If the SIMD bytecode is rejected, only the scalar path remains.",
+    "needs": {
+      "wasm": [
+        "simd",
+        "bulkMemory"
+      ]
+    },
+    "prefers": {
+      "wasm": [
+        "relaxedSimd",
+        "gc"
+      ]
+    },
+    "sentinel": true
+  },
+  {
+    "id": "threadweave",
+    "title": "织线",
+    "titleEn": "Threadweave",
+    "tags": [
+      "wasm",
+      "threads"
+    ],
+    "desc": "多线程求解器，要 SharedArrayBuffer。GitHub Pages 设不了 COOP/COEP，在这类托管上永远是「站点限制」，不是访客的机器不行。",
+    "descEn": "A multithreaded solver needing SharedArrayBuffer. GitHub Pages cannot send COOP/COEP, so here it always reads as a hosting limit, not a device failure.",
+    "needs": {
+      "wasm": [
+        "simd",
+        "threads"
+      ],
+      "threads": true,
+      "es": [
+        "Atomics.waitAsync"
+      ]
+    },
+    "sentinel": true
+  },
+  {
+    "id": "pathtrace",
+    "title": "路径",
+    "titleEn": "Pathtrace",
+    "tags": [
+      "webgpu"
+    ],
+    "desc": "WebGPU compute，要 subgroups 特性与 8192 的纹理维度。内核没有 navigator.gpu 判 x，有 API 但拒给适配器判灰。",
+    "descEn": "WebGPU compute needing the subgroups feature and an 8192 texture dimension. No navigator.gpu is an x; an API that refuses an adapter stays grey.",
+    "needs": {
+      "gpu": {
+        "feature": [
+          "subgroups"
+        ],
+        "limit": {
+          "maxTextureDimension2D": 8192
+        }
+      },
+      "secure": true
+    },
+    "splashTier": "reduced",
+    "sentinel": true
+  },
+  {
+    "id": "reduce-demo",
+    "title": "折减",
+    "titleEn": "Reduce",
+    "tags": [
+      "webgpu"
+    ],
+    "desc": "要 WebGPU 的 subgroups-reduce。这条在 2026 年的 Chromium 上还没有，判 x；换成支持的构建或内核就自动转绿——这类差异只有现场测才看得出来。",
+    "descEn": "Needs the WebGPU subgroups-reduce feature, absent from this Chromium line, so it shows an x. A build that has it turns green on its own — exactly the kind of difference only a live probe can see.",
+    "needs": {
+      "gpu": {
+        "feature": [
+          "subgroups-reduce"
+        ]
+      }
+    },
+    "sentinel": true
+  }
+]

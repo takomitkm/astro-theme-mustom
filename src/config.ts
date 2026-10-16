@@ -97,6 +97,8 @@ export const menus = [
     icon: 'cube',
     items: [
       { text: { 'zh-CN': '归档', 'en-US': 'Archive' }, icon: 'archive', link: abs('/archive/') },
+      { text: { 'zh-CN': '小游戏', 'en-US': 'Games' }, icon: 'puzzle-piece', link: abs('/games/') },
+      { text: { 'zh-CN': '设备检测', 'en-US': 'Device check' }, icon: 'microchip', link: abs('/device-check/') },
       { text: { 'zh-CN': '关于', 'en-US': 'About' }, icon: 'user', link: abs('/about/') },
       { text: { 'zh-CN': '直播间', 'en-US': 'Live' }, icon: 'video', link: abs('/live/') },
     ],
@@ -109,6 +111,8 @@ export const menus = [
 export const headerMenu = [
   { text: { 'zh-CN': '首页', 'en-US': 'Home' }, icon: 'home', link: abs('/') },
   { text: { 'zh-CN': '归档', 'en-US': 'Archive' }, icon: 'archive', link: abs('/archive/') },
+  { text: { 'zh-CN': '小游戏', 'en-US': 'Games' }, icon: 'puzzle-piece', link: abs('/games/') },
+  { text: { 'zh-CN': '设备检测', 'en-US': 'Check' }, icon: 'microchip', link: abs('/device-check/') },
   { text: { 'zh-CN': '关于', 'en-US': 'About' }, icon: 'user', link: abs('/about/') },
   { text: { 'zh-CN': '直播间', 'en-US': 'Live' }, icon: 'video', link: abs('/live/') },
 ];

@@ -39,7 +39,20 @@
 
 **未移植**（留给站点层或暂不需要）：FeedPulse 访客地图、Records/Gallery/Codes/Icons 四类数据页、简历/求职信生成器（Hexo 站点层个人页面）、Happyday 彩蛋、页脚维护者署名、About 页分段双语、PWA 更新弹窗（保持静默 autoUpdate，改法见下）。
 
-**与原版的有意差异**：启动画面每个浏览器会话只播一次（MPA 不再每次点击都闪）；加载指示改为页面加载淡出（代替 SPA 路由转圈）；上/下一篇按语义修正（原版指向与文案相反）；`viewport` 允许双指缩放；搜索索引为 标题+标签+分类+摘要（原版为标题+小节）。
+**与原版的有意差异**：开屏改为**每位访客一生只播一次**（原版每次进 SPA 都放；本仓是 MPA，播过就记进访客本地偏好，之后任何页面都不再出现）；加载指示改为页面加载淡出（代替 SPA 路由转圈）；上/下一篇按语义修正（原版指向与文案相反）；`viewport` 允许双指缩放；搜索索引为 标题+标签+分类+摘要（原版为标题+小节）。
+
+## 设备与特性检测（2026-10-16 加）
+
+给小游戏和开屏做的一层能力判定。设计、判据 DSL、实测基线全在 **`src/lib/detect/README.md`**，这里只记站点上多了什么：
+
+- **`/games/`**（`src/pages/games.astro` + `src/components/GameGrid.astro`）——清单在 `src/data/games.json`，每条声明自己要什么（API 存在性 / ES 特性 / wasm 特性 / WebGL 参数与扩展 / WebGPU feature 与 limit / 编解码 / 安全上下文 / 跨域隔离 / 开屏档位）。访客**没点进去之前**卡片就按四态标好：可玩不加标记、判不了整卡去色压暗、明确不支持压一个 ✕ 水印、站点限制也压 ✕ 但另配色且文案点明是托管设不了响应头。链接一律保留，三态都不吃掉点击。
+  现在清单里那 5 条（`dust`/`wasm-sim`/`threadweave`/`pathtrace`/`reduce-demo`）**不是游戏，是判定哨兵**：故意让它们把 `ok`/`unknown`/`blocked`/`site` 四个态各钉一个在页面上，改过判据后拿这张表当对照，哪一行颜色变了而改的不是那条判据就是把判定改坏了。卡片上因此标着虚线的「判定哨兵」，底部写「自检样本，不上线」而不是链接。加真游戏时往 `games.json` 追加、填上 `url` 即可，哨兵按她的决定全部留着。
+- **`/device-check/`**（`src/pages/device-check.astro`）——公开给访客的读数页，15 个小节加一份原始 JSON，五个按钮（重测 / 跑一次开屏基准 / 复制 JSON / 清除会话缓存 / 重播开屏）。只显示访客自己这台机，不上传、不比对。
+- **开屏**——`full / reduced / static / skip` 四档由 `src/lib/detect/splash.ts` 判，结果写在 `<html data-splash-tier>` 上；`src/components/Splash.astro` 由 `Base.astro` 全站挂载，**每位访客只播一次**：播完把时间戳写进本地那份偏好对象（`localStorage`，键 `btoa(location.host)`，与皮肤/语言同一份），首帧前的 boot 脚本读到它就给 `<html>` 加 `sp-seen` 把这层压掉，所以不会闪遮罩。后台标签里打开时先等页面可见再播，档位判成 `skip` 时不记账。`/device-check/` 的「重播开屏」可以随时解锁再看一次。这层跟 `Spinner`（加载指示，每页都铺、`load` 后淡出，z-index 980）是两回事，开屏在它上面（z-index 1200）。
+- **接线**——`src/layouts/Base.astro` 里 `initDetect()`：同步探针自身工作量 2–6 ms，但冷启动时它排在页面启动后面，墙上时间实测 224–462 ms（后台页更甚），这一条还没优化；WebGPU/媒体那半异步补齐后自动重算标记。
+- **隐私**——读数只进 `sessionStorage`，不发任何请求、不进不蒜子、Service Worker 不参与；私密模式下写不进去就当没记。整套检测**唯一**落长期存储的就是上面那个开屏时间戳，里面不含任何读数字段。
+- **现状**——判定与两个页面在 Chromium 侧逐条实测过（读数 `src/lib/detect/baseline.chromium-2026-10-16.json`，**这份是脱敏过的**：仓库公开，原样入库等于把采集那台机器的设备指纹公开发布，抹掉了哪五处写在文件自己的 `scrub` 块里）；Firefox 与各类 WebView 走的是同一份判据，但**没有采到过读数**。线程类特性（`SharedArrayBuffer`、wasm-threads）在 GitHub Pages 上恒判"站点限制"，迁到能设 COOP/COEP 响应头的托管即自动解锁。
+- **实测到哪一步**——开屏"只播一次"的记账链在内置 Chromium 上跑通了：首次进站写入时间戳并摘掉节点，再刷两次时间戳一字未变、DOM 里没有 `.Splash`，「重播开屏」把偏好清回 `{}` 并摘掉 `sp-seen`。**一处限制**：内置浏览器的页面恒为后台（`document.hidden === true`），所以"真播出来"那一段是把 `dist` 里构建产物的可见性判断临时改掉跑通的，源码未动、事后重新构建即还原；动画帧本身在这个环境里看不到，`full`/`reduced` 两档的 rAF 循环与帧率看门狗**未在真机验证过**。要在 Firefox 或真机上核，直接开 `/device-check/`。
 
 ## 快速开始
 
@@ -87,14 +100,20 @@ src/
 ├── icons/                 # 内联 SVG 图标注册表
 ├── lib/
 │   ├── posts.ts wordcount.ts locales.ts   # 构建期工具（≡ Hexo helpers）
+│   ├── detect/            # 能力与性能探针：capabilities / wasm-features /
+│   │                      # games（判据 DSL）/ splash（4 档）＋ README 与实测基线
 │   └── client/            # 浏览器端 TS：storage/actions/layout/search/
 │                          # hitokoto/busuanzi/recentmore/global/config/misc
-├── components/            # Icon/T/Header/Goingto/Launch/Spinner/Drawer/Aside/
+│                          # + detect.ts（跑探针、给 [data-game] 打标、写 data-splash-tier）
+├── data/games.json        # 小游戏清单（含需求声明；当前 5 条是判定用的哨兵样本）
+├── components/            # Icon/T/Header/Goingto/Spinner/Progress/Drawer/Aside/
 │                          # Brand/Menu/Skin/Settings/Panel/Toc/Ext/Empty/Hitokoto/
-│                          # Recent/Timeline/Article/Comment/Cloud/Footer
+│                          # Recent/Timeline/Article/Comment/Cloud/Footer/Heatmap/
+│                          # Biliplayer/Translate/Random/GameGrid/Splash
 ├── layouts/Base.astro     # ≡ frame.ejs + GlobalLayout.vue（含防闪烁 boot 脚本）
-└── pages/                 # index / posts/[slug] / archive / tags / categories /
-                           # [slug] / 404 / rss.xml / api/recent.json / api/search.json
+└── pages/                 # index / posts/[...slug] / archive / tags / categories /
+                           # [...slug]（src/content/pages 的独立页，如 about）/ 404 /
+                           # live / games / device-check / rss.xml / api/{recent,search}.json
 ```
 
 ## 部署到 GitHub Pages

@@ -1,0 +1,259 @@
+---
+/**
+ * 开屏动画 —— 全站只播一次，播完记进访客的本地偏好（localStorage，与皮肤/语言同一份），
+ * 之后每次进任何页面都不再播。由 Base.astro 挂在 GlobalLayout 最前面。
+ *
+ * 档位来自 src/lib/detect/splash.ts：detect.ts 把 L0 结论写进 <html data-splash-tier>，
+ * 这里只负责"按当前档位渲染什么、掉帧就降一档"。
+ *   full     完整粒子 + 光晕
+ *   reduced  粒子减半、去光晕、去掉文字动画
+ *   static   只画一帧，不起 rAF
+ *   skip     直接从 DOM 摘掉
+ *
+ * 两条不商量的规则：
+ *   1) 没真播过就不记账。页面在后台标签里打开时先等可见，别把访客的一次开屏白白消耗掉。
+ *   2) 开屏不拦内容。点任意处、按任意键、或到点自动收尾；static 档收得更快。
+ */
+import { site } from '../config';
+import { zhCN } from '../lib/locales';
+
+const tier = zhCN.detect.tierNames;
+---
+
+<div class="Splash" data-tier-names={JSON.stringify(tier)} aria-hidden="true">
+  <canvas class="sp-canvas"></canvas>
+  <p class="sp-word">{site.title}</p>
+</div>
+
+<style lang="scss">
+  .Splash {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    background: var(--bg);
+    overflow: hidden;
+    transition: opacity 0.4s;
+  }
+
+  .Splash.sp-gone {
+    display: none;
+  }
+
+  // 已经播过：boot 脚本首帧前就给 <html> 挂上这个类，所以不会闪一下遮罩
+  html.sp-seen .Splash {
+    display: none;
+  }
+
+  // 档位由 <html data-splash-tier> 决定，这样降档只要改一个属性，不用重挂 DOM
+  html[data-splash-tier='skip'] .Splash {
+    display: none;
+  }
+
+  .sp-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .sp-word {
+    position: relative;
+    font-size: 1.6em;
+    letter-spacing: 0.3em;
+    opacity: 0.85;
+  }
+
+  html[data-splash-tier='reduced'] .sp-word,
+  html[data-splash-tier='static'] .sp-word {
+    animation: none;
+  }
+
+  html[data-splash-tier='full'] .sp-word {
+    animation: sp-breathe 3.2s ease-in-out infinite;
+  }
+
+  @keyframes sp-breathe {
+    50% {
+      opacity: 0.35;
+    }
+  }
+</style>
+
+<script>
+  import { initDetect, getSplashTier } from '../lib/client/detect';
+  import { createFpsWatchdog, type SplashTierName } from '../lib/detect/splash';
+  import { getSave, patchSave } from '../lib/client/storage';
+
+  // 两个 module script 的执行顺序不由我们控制，这里自己保证读数已初始化
+  // （initDetect 内部有 started 闸门，重复调用只会直接返回）
+  initDetect();
+
+  const box = document.querySelector<HTMLElement>('.Splash');
+  const root = document.documentElement;
+
+  const seen = () => !!getSave().splashSeen || root.classList.contains('sp-seen');
+  const markSeen = () => {
+    patchSave({ splashSeen: new Date().toISOString() });
+    root.classList.add('sp-seen');
+  };
+  const drop = () => {
+    box?.remove();
+  };
+
+  if (!box || seen()) {
+    drop();
+  } else {
+    const canvas = box.querySelector<HTMLCanvasElement>('.sp-canvas')!;
+    const ctx = canvas.getContext('2d');
+    let raf = 0;
+    let parts: Array<{ x: number; y: number; vx: number; vy: number; r: number }> = [];
+
+    const COUNT: Record<SplashTierName, number> = { full: 300, reduced: 80, static: 120, skip: 0 };
+    const GLOW: Record<SplashTierName, boolean> = { full: true, reduced: false, static: true, skip: false };
+    /** 自动收尾时长：动画档给足时间看完，静态档只是一帧，别多占首屏 */
+    const HOLD: Record<SplashTierName, number> = { full: 5000, reduced: 5000, static: 1200, skip: 0 };
+
+    const resize = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      canvas.width = Math.round(canvas.clientWidth * dpr);
+      canvas.height = Math.round(canvas.clientHeight * dpr);
+      if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const seed = (n: number) => {
+      const w = canvas.clientWidth || window.innerWidth;
+      const h = canvas.clientHeight || window.innerHeight;
+      parts = Array.from({ length: n }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: Math.random() * 1.8 + 0.4,
+      }));
+    };
+
+    const draw = () => {
+      if (!ctx) return;
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      ctx.clearRect(0, 0, w, h);
+      const tierNow = getSplashTier();
+      ctx.fillStyle = 'rgba(120,170,255,0.75)';
+      if (GLOW[tierNow]) {
+        ctx.shadowColor = 'rgba(120,170,255,0.6)';
+        ctx.shadowBlur = 8;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      for (const p of parts) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.shadowBlur = 0;
+    };
+
+    const move = () => {
+      const w = canvas.clientWidth;
+      const h = canvas.clientHeight;
+      for (const p of parts) {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx = -p.vx;
+        if (p.y < 0 || p.y > h) p.vy = -p.vy;
+      }
+    };
+
+    const stop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    let autoTimer = 0;
+
+    /** 一档的完整落地：改属性 → 重画 → 需要时才起 rAF */
+    const applyTier = (t: SplashTierName) => {
+      root.dataset.splashTier = t;
+      stop();
+      if (autoTimer) {
+        window.clearTimeout(autoTimer);
+        autoTimer = 0;
+      }
+      if (t === 'skip') {
+        box.classList.add('sp-gone');
+        return;
+      }
+      box.classList.remove('sp-gone');
+      seed(COUNT[t]);
+      draw();
+      if (t === 'full' || t === 'reduced') {
+        const loop = () => {
+          // 微基准在开屏播到一半时才跑完，升档要能就地接住，不然 full 那档永远看不到
+          const live = getSplashTier();
+          if (live !== t) {
+            applyTier(live);
+            return;
+          }
+          move();
+          draw();
+          raf = requestAnimationFrame(loop);
+        };
+        raf = requestAnimationFrame(loop);
+      }
+      autoTimer = window.setTimeout(dismiss, HOLD[t]);
+    };
+
+    /** 收尾＝记账。只有真播过才写 splashSeen，skip 档不写（那台引擎本来也放不出来） */
+    const dismiss = () => {
+      if (autoTimer) window.clearTimeout(autoTimer);
+      autoTimer = 0;
+      watchdog.stop();
+      stop();
+      window.removeEventListener('pointerdown', dismiss);
+      window.removeEventListener('keydown', dismiss);
+      if (getSplashTier() !== 'skip') markSeen();
+      box.style.opacity = '0';
+      window.setTimeout(drop, 420);
+    };
+
+    const watchdog = createFpsWatchdog({
+      tier: () => (root.dataset.splashTier as SplashTierName) || 'full',
+      onDegrade: (_from, to) => applyTier(to),
+    });
+
+    resize();
+    window.addEventListener('resize', () => {
+      resize();
+      draw();
+    });
+
+    // 后台标签里 rAF 被节流：等页面真可见了再播，别把访客唯一的一次开屏浪费掉
+    const begin = () => {
+      const start = getSplashTier() || 'reduced';
+      applyTier(start);
+      if (start === 'full' || start === 'reduced') watchdog.start();
+      window.addEventListener('pointerdown', dismiss, { once: true });
+      window.addEventListener('keydown', dismiss, { once: true });
+    };
+
+    if (document.hidden) {
+      box.classList.add('sp-gone');
+      const onVisible = () => {
+        if (document.hidden || seen()) return;
+        document.removeEventListener('visibilitychange', onVisible);
+        box.classList.remove('sp-gone');
+        begin();
+      };
+      document.addEventListener('visibilitychange', onVisible);
+      // 一直不可见就不播也不记账；这条兜底只在页面转可见后才有意义
+      window.setTimeout(() => {
+        if (!document.hidden && box.classList.contains('sp-gone') && !seen()) onVisible();
+      }, 1000);
+    } else {
+      begin();
+    }
+  }
+</script>

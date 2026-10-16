@@ -16,6 +16,8 @@ export interface SaveData {
   skeuoTop?: boolean;
   /** 被折叠的卡片 data-mini-id 列表（跨页保持折叠/展开） */
   mini?: string[];
+  /** 开屏已经播过的时间戳。全站一次即止：有这个值就不再播，读数本身不落这里 */
+  splashSeen?: string;
 }
 
 export const KEY = () => window.btoa(window.location.host);

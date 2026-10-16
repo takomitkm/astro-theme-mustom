@@ -1,13 +1,14 @@
 ---
 /**
  * 基础布局 —— 对应 GlobalLayout.vue + hexo frame.ejs
- * 结构：Spinner / Progress / Header / Goingto / frame(drawer|center|aside|footer) / Ext
+ * 结构：Splash（全站只播一次）/ Spinner / Progress / Header / Goingto / frame(drawer|center|aside|footer) / Ext
  */
 import 'github-markdown-css/github-markdown.css';
 import 'katex/dist/katex.min.css';
 import '../styles/global.scss';
 
 import Spinner from '../components/Spinner.astro';
+import Splash from '../components/Splash.astro';
 import Progress from '../components/Progress.astro';
 import Heatmap from '../components/Heatmap.astro';
 import Translate from '../components/Translate.astro';
@@ -155,6 +156,8 @@ const clientConfig = {
           if (s.noLive2d) h.classList.add('NO_LIVE2D');
           if (s.skeuoTop) h.classList.add('skeuo-top');
           if (s.hidePlayer) h.classList.add('hide-player');
+          // 开屏全站只播一次：播过就把这一层在首帧前压掉，免得闪一下空白遮罩
+          if (s.splashSeen) h.classList.add('sp-seen');
           if (
             /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i.test(
               navigator.userAgent,
@@ -173,6 +176,7 @@ const clientConfig = {
 
   <body>
     <div class="GlobalLayout">
+      <Splash />
       <Spinner />
       <Progress />
       <Header />
@@ -212,7 +216,10 @@ const clientConfig = {
 
     <script>
       import { initGlobal } from '../lib/client/global';
+      import { initDetect } from '../lib/client/detect';
       initGlobal();
+      // 能力探针：同步部分几毫秒，先给游戏卡片打标与开屏档位；WebGPU 那半异步补完后重算
+      initDetect();
 
       // 加载中光标（idc_wait）：首帧就挂上 is-loading，load 后摘掉。
       // 内联在 body 末尾，理论上已接近完成，但仍留 1.2s 兜底，

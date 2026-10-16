@@ -1,0 +1,711 @@
+---
+// 设备与内核检测页 —— 公开给访客，把探针读到的东西全部摊开。
+// 静态部分只有一个空壳：所有读数都是访客自己浏览器的，构建期不存在任何可写死的内容。
+import Base from '../layouts/Base.astro';
+import Article from '../components/Article.astro';
+import T from '../components/T.astro';
+import { site } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+
+const withEn = site.languages.includes('en-US');
+const L = zhCN.detect.check;
+const LE = enUS.detect.check;
+---
+
+<Base title={withEn ? 'Device check' : '设备检测'}>
+  <Article title={L.caption} isPost={false}>
+    <p class="dc-intro">
+      <T zh={L.intro} en={withEn ? LE.intro : undefined} />
+    </p>
+
+    <div class="dc-bar">
+      <button type="button" class="dc-btn" data-act="run">
+        <T zh={L.run} en={withEn ? LE.run : undefined} />
+      </button>
+      <button type="button" class="dc-btn" data-act="bench">
+        <T zh={L.bench} en={withEn ? LE.bench : undefined} />
+      </button>
+      <button type="button" class="dc-btn" data-act="copy">
+        <T zh={L.copy} en={withEn ? LE.copy : undefined} />
+      </button>
+      <button type="button" class="dc-btn" data-act="clear">
+        <T zh={L.clear} en={withEn ? LE.clear : undefined} />
+      </button>
+      <button type="button" class="dc-btn" data-act="replay">
+        <T zh={L.replay} en={withEn ? LE.replay : undefined} />
+      </button>
+      <span class="dc-status" data-role="status"></span>
+    </div>
+
+    <div class="dc-mount" data-role="mount">
+      <p class="dc-loading">…</p>
+    </div>
+  </Article>
+</Base>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .dc-intro {
+    font-size: 0.85em;
+    opacity: 0.72;
+  }
+
+  .dc-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5em;
+    margin: 1em 0;
+  }
+
+  .dc-btn {
+    padding: 0.3em 0.9em;
+    font: inherit;
+    font-size: 0.8em;
+    color: var(--link);
+    background: none;
+    border: 1px solid var(--link);
+    border-radius: $borderRadius;
+    cursor: pointer;
+  }
+
+  .dc-btn:hover {
+    opacity: 0.8;
+  }
+
+  .dc-status {
+    font-size: 0.75em;
+    opacity: 0.6;
+  }
+
+  .dc-sec {
+    margin: 1.4em 0;
+  }
+
+  .dc-sec > h3 {
+    font-size: 0.9em;
+    letter-spacing: 0.06em;
+    border-bottom: 1px solid var(--article-ending);
+    padding-bottom: 0.3em;
+    margin-bottom: 0.6em;
+  }
+
+  .dc-note {
+    font-size: 0.75em;
+    opacity: 0.62;
+    margin: 0.4em 0;
+  }
+
+  table.dc-tbl {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78em;
+    table-layout: fixed;
+  }
+
+  .dc-tbl th,
+  .dc-tbl td {
+    text-align: left;
+    padding: 0.22em 0.5em;
+    border-bottom: 1px solid var(--article-ending);
+    vertical-align: top;
+    word-break: break-word;
+  }
+
+  .dc-tbl th {
+    width: 34%;
+    opacity: 0.66;
+    font-weight: 400;
+  }
+
+  .dc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.2em 0.8em;
+    font-size: 0.78em;
+  }
+
+  .dc-chip {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5em;
+    padding: 0.1em 0.3em;
+    border-radius: $borderRadius;
+  }
+
+  .dc-chip i {
+    font-style: normal;
+    opacity: 0.75;
+  }
+
+  .dc-yes {
+    color: var(--link);
+  }
+  // 判不了＝灰；实测不支持＝红。两态必须一眼分开，别把灰当红
+  .dc-unknown {
+    opacity: 0.42;
+    background: var(--highlight);
+  }
+  .dc-no {
+    color: #e05c5c;
+  }
+
+  .dc-pre {
+    max-height: 22em;
+    overflow: auto;
+    padding: 0.6em;
+    background: var(--highlight);
+    font-size: 0.7em;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .dc-warn {
+    font-size: 0.78em;
+    padding: 0.5em 0.7em;
+    border-left: 3px solid var(--link);
+    background: var(--highlight);
+  }
+
+  .dc-verdict {
+    display: inline-block;
+    min-width: 4.2em;
+    text-align: center;
+    font-size: 0.7em;
+    letter-spacing: 0.06em;
+    padding: 0.1em 0.4em;
+    border-radius: $borderRadius;
+  }
+  .dc-v-ok { color: var(--link); }
+  .dc-v-unknown { opacity: 0.5; background: var(--highlight); }
+  .dc-v-blocked { color: #e05c5c; border: 1px solid #e05c5c; }
+  .dc-v-site { color: #e0a04c; border: 1px solid #e0a04c; }
+</style>
+
+<script>
+  import { getCaps, onCaps, refreshDetect, getGames, getSplashTier, getSplashWhy } from '../lib/client/detect';
+  import { verdictAll } from '../lib/detect/games';
+  import { runSplashBench } from '../lib/detect/splash';
+  import { PROBE_VERSION, type Caps } from '../lib/detect/capabilities';
+  import type { GameEntry, VerdictDetail, Verdict } from '../lib/detect/games';
+  import { getSave, patchSave } from '../lib/client/storage';
+
+  const CACHE_KEY = `mustom.detect.v${PROBE_VERSION}`;
+
+  /* 开屏"已播过"这一条记在本站那份偏好里（localStorage），是整套探针唯一落长期存储的东西。
+     这里给它开个解锁口子：不然访客看完这一页就再也没法回放开屏了。 */
+  const SEEN_CLASS = 'sp-seen';
+  function unlockSplash(): void {
+    patchSave({ splashSeen: undefined });
+    document.documentElement.classList.remove(SEEN_CLASS);
+  }
+
+  /* ---------- 双语：本页文案两份都写进 DOM，靠 html.lang-en 切换（与主题 T.astro 同一套） ---------- */
+  const isEn = () => document.documentElement.classList.contains('lang-en');
+  const bi = (zh: string, en: string): DocumentFragment => {
+    const f = document.createDocumentFragment();
+    const a = document.createElement('span');
+    a.className = 'm-zh';
+    a.textContent = zh;
+    const b = document.createElement('span');
+    b.className = 'm-en';
+    b.textContent = en;
+    f.append(a, b);
+    return f;
+  };
+
+  const STR: Record<string, [string, string]> = {
+    summary: ['结论', 'Summary'],
+    engine: ['内核', 'Engine'],
+    host: ['设备与连接', 'Device & network'],
+    ctx: ['站点上下文', 'Site context'],
+    prefs: ['访客偏好', 'Visitor preferences'],
+    es: ['语言与运行时', 'Language & runtime'],
+    apis: ['API 存在性', 'API presence'],
+    wasm: ['WebAssembly 特性', 'WebAssembly features'],
+    webgl: ['WebGL', 'WebGL'],
+    webgpu: ['WebGPU', 'WebGPU'],
+    media: ['编解码与音频', 'Codecs & audio'],
+    splash: ['开屏分级', 'Splash grading'],
+    games: ['小游戏判定', 'Game verdicts'],
+    notes: ['探针备注', 'Probe notes'],
+    raw: ['原始 JSON', 'Raw JSON'],
+    yes: ['可用', 'yes'],
+    no: ['✕ 不可用', '✕ no'],
+    na: ['? 判不了', '? n/a'],
+    pass: ['满足', 'pass'],
+    fail: ['✕ 不满足', '✕ fail'],
+    pending: ['异步读数还没补齐（WebGPU、高熵 UA、配额、电池）', 'Async readings still pending'],
+    done: ['异步读数已补齐', 'Async readings complete'],
+    cached: ['读自本会话缓存', 'From this session’s cache'],
+    fresh: ['刚测的', 'Measured now'],
+    gradeHint: [
+      '灰底＝这个内核没有这条通道，属内核限制，不是你的设备不行；红＝实测为不支持。',
+      'Grey = the engine exposes no such channel (an engine limit, not your hardware). Red = measured unsupported.',
+    ],
+    gpuName: [
+      'GPU 型号字符串（adapter.info、WEBGL_debug_renderer_info）由浏览器自行裁量，空白不代表设备没有显卡。',
+      'GPU name strings are at the browser’s discretion; empty does not mean there is no GPU.',
+    ],
+    threads: [
+      '跨域隔离要服务器发 COOP + COEP 响应头。GitHub Pages 设不了，迁到能设头的托管后这条自动转绿。',
+      'Cross-origin isolation needs COOP + COEP headers. GitHub Pages cannot send them.',
+    ],
+    bench: ['基准：', 'Benchmark: '],
+    benchNone: ['还没跑微基准（首次进页面 1.5 秒后的空闲时段自动跑一次）', 'No benchmark yet (auto-runs once when idle)'],
+    tier: ['开屏档位', 'Splash tier'],
+    noVerdict: ['探针还没读数', 'No readings yet'],
+    copyOk: ['已复制', 'Copied'],
+    copyFail: ['复制失败，请手动选中文本', 'Copy failed, select the text manually'],
+    cleared: ['已清除，刷新后重测', 'Cleared, reload to re-probe'],
+    replayed: ['已解锁，刷新页面即可看到开屏', 'Unlocked — reload to see the splash'],
+    seen: ['开屏已播过', 'Splash already shown'],
+    notSeen: ['开屏还没播过', 'Splash not shown yet'],
+  };
+
+  function T(key: string): DocumentFragment {
+    const [zh, en] = STR[key] ?? [key, key];
+    return bi(zh, en);
+  }
+
+  /* ---------- 小构造器 ---------- */
+  const mk = (tag: string, cls?: string): HTMLElement => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    return n;
+  };
+
+  function section(key: string, hint?: [string, string]): HTMLElement {
+    const s = mk('section', 'dc-sec');
+    const h = mk('h3');
+    h.append(T(key));
+    s.append(h);
+    if (hint) {
+      const p = mk('p', 'dc-note');
+      p.append(bi(hint[0], hint[1]));
+      s.append(p);
+    }
+    return s;
+  }
+
+  function kvTable(rows: Array<[string, string]>): HTMLElement {
+    const t = mk('table', 'dc-tbl');
+    for (const [k, v] of rows) {
+      const tr = mk('tr');
+      const th = mk('th');
+      th.textContent = k;
+      const td = mk('td');
+      td.textContent = v;
+      tr.append(th, td);
+      t.append(tr);
+    }
+    return t;
+  }
+
+  type State = 'yes' | 'no' | 'na';
+  function chip(label: string, state: State, detail?: string): HTMLElement {
+    const c = mk('div', 'dc-chip dc-' + (state === 'yes' ? 'yes' : state === 'no' ? 'no' : 'unknown'));
+    const l = mk('span');
+    l.textContent = label;
+    const i = mk('i');
+    i.textContent = detail ?? (state === 'yes' ? '✓' : state === 'no' ? '✕' : '?');
+    i.title = isEn() ? STR[`${state === 'yes' ? 'pass' : state === 'no' ? 'fail' : 'na'}`][1] : STR[state === 'yes' ? 'pass' : state === 'no' ? 'fail' : 'na'][0];
+    c.append(l, i);
+    return c;
+  }
+
+  function chipGrid(items: HTMLElement[]): HTMLElement {
+    const g = mk('div', 'dc-grid');
+    for (const it of items) g.append(it);
+    return g;
+  }
+
+  /* ---------- 各段渲染 ---------- */
+
+  function renderSummary(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('summary', STR['gradeHint']);
+    const counts = { ok: 0, unknown: 0, blocked: 0, site: 0 };
+    for (const r of verdictAll(getGames(), caps, getSplashTier())) counts[r.detail.verdict]++;
+    const bar = mk('div', 'dc-grid');
+    for (const k of ['ok', 'unknown', 'blocked', 'site'] as const) {
+      const c = mk('div', 'dc-chip');
+      const l = mk('span');
+      l.textContent = k;
+      const i = mk('i');
+      i.textContent = String(counts[k]);
+      c.append(l, i);
+      bar.append(c);
+    }
+    s.append(bar);
+
+    const status = mk('p', 'dc-note');
+    status.append(bi(caps.asyncDone ? STR.done[0] : STR.pending[0], caps.asyncDone ? STR.done[1] : STR.pending[1]));
+    s.append(status);
+
+    const warn = mk('p', 'dc-warn');
+    warn.append(bi(STR.threads[0], STR.threads[1]));
+    s.append(warn);
+    mounts.push(s);
+  }
+
+  function renderEngine(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('engine');
+    const e = caps.engine;
+    const rows: Array<[string, string]> = [
+      ['UA', e.ua],
+      ['family', `${e.family}（依据：${e.familyHow}）`],
+      ['WebView', e.isWebView ? `是（${e.isWebViewHow}）` : `否（${e.isWebViewHow}）`],
+      ['vendor', e.vendor],
+      ['platform', e.platform],
+      ['oscpu', e.oscpu],
+      ['languages', e.languages.join(', ')],
+      ['UA-CH brands', e.uach.supported ? e.uach.brands.join(' / ') : '不实现（内核限制）'],
+      ['UA-CH mobile', e.uach.supported ? String(e.uach.mobile) : '—'],
+    ];
+    if (e.uachHigh && !('probeError' in e.uachHigh)) {
+      for (const [k, v] of Object.entries(e.uachHigh)) rows.push([`高熵 ${k}`, v]);
+    }
+    s.append(kvTable(rows));
+    mounts.push(s);
+  }
+
+  function renderHost(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('host');
+    const h = caps.host;
+    const rows: Array<[string, string]> = [
+      ['hardwareConcurrency', h.hardwareConcurrency === undefined ? '读不到' : String(h.hardwareConcurrency)],
+      ['deviceMemory', h.deviceMemory === undefined ? '该内核不实现（Firefox/Safari）' : `${h.deviceMemory} GB（量化值）`],
+      ['maxTouchPoints', h.maxTouchPoints === undefined ? '读不到' : String(h.maxTouchPoints)],
+      ['devicePixelRatio', h.dpr === undefined ? '读不到' : String(h.dpr)],
+      ['screen', `${h.screen.w}×${h.screen.h}（可用 ${h.screen.availW}×${h.screen.availH}，${h.screen.depth}bit）`],
+      ['viewport', `${h.viewport.w}×${h.viewport.h}`],
+      ['heap', h.heap.note || `${h.heap.usedMB ?? '?'} / ${h.heap.limitMB ?? '?'} MB`],
+      ['connection', `${h.connection.type || '—'} / ${h.connection.effectiveType || '—'} / downlink ${h.connection.downlink ?? '—'} / rtt ${h.connection.rtt ?? '—'}ms / saveData ${h.connection.saveData}`],
+      ['quota', h.quota ? h.quota.note || `${h.quota.usageMB ?? '?'} / ${h.quota.quotaMB ?? '?'} MB` : '未测'],
+      ['battery', h.battery ? h.battery.note || `${h.battery.level ?? '?'}（charging ${h.battery.charging}）` : '未测'],
+    ];
+    s.append(kvTable(rows));
+    mounts.push(s);
+  }
+
+  function renderCtx(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('ctx');
+    const c = caps.ctx;
+    s.append(
+      kvTable([
+        ['origin', c.origin],
+        ['protocol', c.protocol],
+        ['isSecureContext', String(c.isSecureContext)],
+        ['crossOriginIsolated', String(c.crossOriginIsolated)],
+      ]),
+    );
+    for (const lim of c.siteLimits) {
+      const p = mk('p', 'dc-warn');
+      p.textContent = lim.text;
+      s.append(p);
+    }
+    if (!c.siteLimits.length) {
+      const p = mk('p', 'dc-note');
+      p.append(bi('当前托管没有已知站点级限制。', 'No hosting-level limits detected here.'));
+      s.append(p);
+    }
+    mounts.push(s);
+  }
+
+  function renderPrefs(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('prefs');
+    const p = caps.prefs;
+    s.append(
+      kvTable([
+        ['prefers-reduced-motion', String(p.reducedMotion)],
+        ['prefers-reduced-transparency', String(p.reducedTransparency)],
+        ['prefers-contrast', p.contrast],
+        ['color-gamut', p.colorGamut],
+        ['dynamic-range', p.dynamicRange],
+        ['pointer', `fine ${p.pointer.fine} / coarse ${p.pointer.coarse} / none ${p.pointer.none}`],
+        ['any-hover', String(p.hover)],
+        ['forced-colors', String(p.forcedColors)],
+      ]),
+    );
+    mounts.push(s);
+  }
+
+  function renderFlags(caps: Caps, mounts: HTMLElement[]): void {
+    const s1 = section('es');
+    // ES 探针是"运行时到底有没有这个内置"，测得 false 就是正面缺失，按红处理
+    s1.append(
+      chipGrid(
+        Object.entries(caps.es).map(([k, v]) => chip(k, v ? 'yes' : 'no', v ? '✓' : '✕')),
+      ),
+    );
+
+    const s2 = section('apis');
+    s2.append(
+      chipGrid(
+        Object.entries(caps.apis).map(([k, t]) => {
+          if (t === 'missing') return chip(k, 'no', '✕');
+          if (t === 'undefined') return chip(k, 'no', '✕ undefined');
+          if (t === 'error') return chip(k, 'na', '?');
+          return chip(k, 'yes', t === 'accessor' ? '✓ getter' : '✓');
+        }),
+      ),
+    );
+
+    const s3 = section('wasm');
+    s3.append(
+      chipGrid(
+        Object.entries(caps.wasm).map(([k, v]) => {
+          if (k === 'threads' && !v && !caps.ctx.crossOriginIsolated) return chip(k, 'na', '?');
+          return chip(k, v ? 'yes' : 'no', v ? '✓' : '✕');
+        }),
+      ),
+    );
+    mounts.push(s1, s2, s3);
+  }
+
+  function renderGpu(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('webgl', STR['gpuName']);
+    for (const [label, g] of [
+      ['WebGL1', caps.webgl1],
+      ['WebGL2', caps.webgl2],
+    ] as const) {
+      const head = mk('p', 'dc-note');
+      head.textContent = label;
+      s.append(head);
+      const rows: Array<[string, string]> = [
+        ['上下文', g.ok ? '有' : `无（grade=${g.grade}）`],
+        ['grade', g.grade],
+        ['note', g.note],
+        ['VERSION', g.version],
+        ['SHADING_LANGUAGE_VERSION', g.shadingLanguage],
+        ['VENDOR / RENDERER', `${g.maskedVendor} / ${g.maskedRenderer}`],
+        ['unmasked', `${g.unmaskedVendor} / ${g.unmaskedRenderer}`],
+        ['各向异性上限', String(g.anisoMax)],
+        ['扩展数', String(g.exts.length)],
+      ];
+      s.append(kvTable(rows));
+      if (g.exts.length) {
+        const p = mk('p', 'dc-note');
+        p.textContent = g.exts.join(' · ');
+        s.append(p);
+      }
+      const paramRows = Object.entries(g.params).map(([k, v]) => [k, String(v)] as [string, string]);
+      if (paramRows.length) s.append(kvTable(paramRows));
+      const prec = Object.entries(g.precision).map(
+        ([k, v]) => [k, `precision ${v.precision} range ${v.rangeMin}–${v.rangeMax}`] as [string, string],
+      );
+      if (prec.length) s.append(kvTable(prec));
+    }
+    mounts.push(s);
+  }
+
+  function renderWebgpu(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('webgpu');
+    if (!caps.asyncDone) {
+      const p = mk('p', 'dc-note');
+      p.append(bi(STR.pending[0], STR.pending[1]));
+      s.append(p);
+      mounts.push(s);
+      return;
+    }
+    s.append(
+      kvTable([
+        ['verdict', caps.webgpu.verdict],
+        ['note', caps.webgpu.note],
+        ['adapters', String(caps.webgpu.adapters.length)],
+      ]),
+    );
+    for (const a of caps.webgpu.adapters) {
+      const rows: Array<[string, string]> = [
+        ['请求', JSON.stringify(a.requested)],
+        ['结果', a.gotAdapter ? '拿到适配器' : a.error || 'null'],
+        ['info', Object.entries(a.info).map(([k, v]) => `${k}=${v}`).join(' · ') || '（全空）'],
+        ['preferredFormat', a.preferredFormat],
+        ['wgsl', a.wgsl.join(' · ')],
+        ['features', a.features.join(' · ')],
+        ['limits', Object.entries(a.limits).map(([k, v]) => `${k}=${v}`).join(' · ')],
+      ];
+      s.append(kvTable(rows));
+    }
+    mounts.push(s);
+  }
+
+  function renderMedia(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('media');
+    const items = Object.entries(caps.media.codecs).map(([k, v]) =>
+      chip(k, v === 'probably' ? 'yes' : v === 'maybe' ? 'na' : v === 'no' ? 'no' : 'na', v === 'probably' ? '✓' : v === 'no' ? '✕' : v),
+    );
+    s.append(chipGrid(items));
+    const mse = Object.entries(caps.media.mse).map(
+      ([k, v]) => [k, v ? 'yes' : 'no'] as [string, string],
+    );
+    if (mse.length) s.append(kvTable(mse));
+    s.append(
+      kvTable([
+        ['AudioContext', caps.media.audio.note || `sampleRate ${caps.media.audio.sampleRate} / baseLatency ${caps.media.audio.baseLatency} / out ${caps.media.audio.outputChannels}`],
+        ['WebCodecs', caps.media.webcodecs ? 'yes' : 'no'],
+        ['WebRTC', caps.media.webrtc ? 'yes' : 'no'],
+      ]),
+    );
+    mounts.push(s);
+  }
+
+  function renderSplash(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('splash');
+    const tier = getSplashTier();
+    const row = mk('p');
+    const b = mk('b');
+    b.textContent = tier;
+    row.append(bi(`${STR.tier[0]}：`, `${STR.tier[1]}: `), b);
+    s.append(row);
+    for (const w of getSplashWhy()) {
+      const p = mk('p', 'dc-note');
+      p.textContent = '· ' + w;
+      s.append(p);
+    }
+    const bench = (window as unknown as { __mustomBench?: unknown }).__mustomBench;
+    const bp = mk('p', 'dc-note');
+    bp.append(bi(STR.bench[0], STR.bench[1]));
+    bp.append(document.createTextNode(bench ? JSON.stringify(bench) : STR.benchNone[0]));
+    s.append(bp);
+
+    const seenAt = getSave().splashSeen;
+    const sp = mk('p', 'dc-note');
+    sp.append(bi(seenAt ? STR.seen[0] : STR.notSeen[0], seenAt ? STR.seen[1] : STR.notSeen[1]));
+    if (seenAt) sp.append(document.createTextNode(`  ${seenAt}`));
+    s.append(sp);
+
+    void caps;
+    mounts.push(s);
+  }
+
+  const VERDICT_LABEL: Record<Verdict, [string, string]> = {
+    ok: ['可玩', 'playable'],
+    unknown: ['? 判不了', '? unknown'],
+    blocked: ['✕ 不支持', '✕ unsupported'],
+    site: ['⚠ 站点限制', '⚠ hosting'],
+  };
+
+  function renderGames(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('games');
+    const results: Array<{ game: GameEntry; detail: VerdictDetail }> = verdictAll(getGames(), caps, getSplashTier());
+    for (const { game, detail } of results) {
+      const row = mk('div', 'dc-chip');
+      const l = mk('span');
+      l.textContent = isEn() && game.titleEn ? game.titleEn : game.title;
+      const badge = mk('span', 'dc-verdict dc-v-' + detail.verdict);
+      badge.append(bi(VERDICT_LABEL[detail.verdict][0], VERDICT_LABEL[detail.verdict][1]));
+      row.append(l, badge);
+      s.append(row);
+      for (const list of [detail.blocked, detail.site, detail.unknown, detail.warn]) {
+        for (const t of list) {
+          const p = mk('p', 'dc-note');
+          p.textContent = '  ' + t;
+          s.append(p);
+        }
+      }
+    }
+    mounts.push(s);
+  }
+
+  function renderNotes(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('notes');
+    if (!caps.notes.length) {
+      const p = mk('p', 'dc-note');
+      p.append(bi('没有告警：所有探测都跑通了。', 'No warnings: every probe ran.'));
+      s.append(p);
+    }
+    for (const n of caps.notes) {
+      const p = mk('p', 'dc-note');
+      p.textContent = `[${n.section}] ${n.text}`;
+      s.append(p);
+    }
+    mounts.push(s);
+  }
+
+  function renderRaw(caps: Caps, mounts: HTMLElement[]): void {
+    const s = section('raw');
+    const pre = mk('pre', 'dc-pre');
+    pre.id = 'dc-raw';
+    pre.textContent = JSON.stringify(caps, null, 2);
+    s.append(pre);
+    mounts.push(s);
+  }
+
+  /* ---------- 装配 ---------- */
+  const mount = document.querySelector<HTMLElement>('[data-role="mount"]');
+  const statusEl = document.querySelector<HTMLElement>('[data-role="status"]');
+
+  function render(caps: Caps): void {
+    if (!mount) return;
+    mount.textContent = '';
+    const out: HTMLElement[] = [];
+    renderSummary(caps, out);
+    renderSplash(caps, out);
+    renderGames(caps, out);
+    renderEngine(caps, out);
+    renderCtx(caps, out);
+    renderHost(caps, out);
+    renderPrefs(caps, out);
+    renderFlags(caps, out);
+    renderGpu(caps, out);
+    renderWebgpu(caps, out);
+    renderMedia(caps, out);
+    renderNotes(caps, out);
+    renderRaw(caps, out);
+    for (const n of out) mount.append(n);
+    if (statusEl) {
+      const cachedFrom = !!(window as unknown as { __mustomFresh?: boolean })?.__mustomFresh ? STR.fresh : STR.cached;
+      statusEl.textContent = '';
+      statusEl.append(bi(cachedFrom[0], cachedFrom[1]));
+      const t = document.createElement('span');
+      t.textContent = `  ${caps.at}  sync ${caps.tookMs.sync}ms / async ${caps.tookMs.async}ms`;
+      statusEl.append(t);
+    }
+  }
+
+  onCaps((caps) => render(caps));
+  const existing = getCaps();
+  if (existing) render(existing);
+
+  /* ---------- 工具条 ---------- */
+  document.querySelectorAll<HTMLElement>('.dc-btn').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const act = btn.dataset.act;
+      if (act === 'run') {
+        if (statusEl) statusEl.textContent = isEn() ? STR.pending[1] : STR.pending[0];
+        (window as unknown as { __mustomFresh: boolean }).__mustomFresh = true;
+        await refreshDetect();
+      } else if (act === 'bench') {
+        const b = await runSplashBench({ frames: 60 });
+        (window as unknown as { __mustomBench: unknown }).__mustomBench = b;
+        const caps = getCaps();
+        if (caps) render(caps);
+      } else if (act === 'copy') {
+        const pre = document.getElementById('dc-raw');
+        const text = pre?.textContent ?? '';
+        try {
+          await navigator.clipboard.writeText(text);
+          if (statusEl) statusEl.append(bi(STR.copyOk[0] + ' ', STR.copyOk[1] + ' '));
+        } catch {
+          if (statusEl) statusEl.append(bi(STR.copyFail[0] + ' ', STR.copyFail[1] + ' '));
+        }
+      } else if (act === 'clear') {
+        try {
+          sessionStorage.removeItem(CACHE_KEY);
+        } catch {
+          /* 无痕模式本来就没写进去 */
+        }
+        if (statusEl) statusEl.append(bi(STR.cleared[0] + ' ', STR.cleared[1] + ' '));
+      } else if (act === 'replay') {
+        unlockSplash();
+        const caps = getCaps();
+        if (caps) render(caps);
+        if (statusEl) statusEl.append(bi(STR.replayed[0] + ' ', STR.replayed[1] + ' '));
+      }
+    });
+  });
+</script>

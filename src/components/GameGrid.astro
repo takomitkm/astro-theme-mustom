@@ -1,0 +1,142 @@
+---
+/**
+ * 游戏格子 —— 每张卡带 data-game=id，客户端 detect.ts 据需求表打标：
+ *   可玩   不加标记
+ *   判不了 .dt-unknown 灰显（探针测不到，不是设备不行）
+ *   不支持 .dt-blocked 右上角 x
+ *   站点限制 .dt-site   右上角 x，但文案点明是托管设不了头
+ *
+ * 卡片本身不带判定结果：静态 HTML 里没有访客的读数，写死了就是骗人。
+ * 未跑 JS 时看到的就是这份无标记的列表，链接照常能点。
+ *
+ * sentinel 条目是判定哨兵（不是真游戏），单独加一枚角标说明，
+ * 免得访客把"织线""折减"当成马上能玩的东西。
+ */
+import T from './T.astro';
+import Icon from './Icon.astro';
+import { site, abs } from '../config';
+import { zhCN, enUS } from '../lib/locales';
+import { asGames, type GameEntry } from '../lib/detect/games';
+import gamesJson from '../data/games.json';
+
+interface Props {
+  /** 不传就用 src/data/games.json */
+  games?: GameEntry[];
+}
+
+const withEn = site.languages.includes('en-US');
+const list = Astro.props.games ?? asGames(gamesJson);
+const L = zhCN.detect;
+const LE = enUS.detect;
+---
+
+<div class="GameGrid">
+  {
+    list.map((g) => (
+      <div class="card gg-item" data-game={g.id}>
+        <div class="caption">
+          <Icon name="puzzle-piece" />
+          <T zh={g.title} en={withEn ? g.titleEn : undefined} />
+        </div>
+        <div class="gg-body">
+          <p class="gg-desc">
+            <T zh={g.desc ?? ''} en={withEn ? g.descEn : undefined} />
+          </p>
+          {(g.tags ?? []).length > 0 || g.sentinel ? (
+            <ul class="gg-tags">
+              {g.sentinel && (
+                <li class="gg-sentinel" title={L.sentinelWhy}>
+                  <T zh={L.sentinel} en={withEn ? LE.sentinel : undefined} />
+                </li>
+              )}
+              {(g.tags ?? []).map((t) => (
+                <li>{t}</li>
+              ))}
+            </ul>
+          ) : null}
+          {g.url ? (
+            <a class="gg-go" href={abs(g.url)}>
+              <T zh={L.play} en={withEn ? LE.play : undefined} />
+            </a>
+          ) : (
+            <span class="gg-go gg-soon">
+              <T zh={g.sentinel ? L.sentinelSoon : L.soon} en={withEn ? (g.sentinel ? LE.sentinelSoon : LE.soon) : undefined} />
+            </span>
+          )}
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<style lang="scss">
+  @use '../styles/vars' as *;
+
+  .GameGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: $gap * 0.5;
+
+    .gg-item {
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .gg-body {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5em;
+      padding: 0 0.75rem 0.75rem;
+      flex: 1;
+    }
+
+    .gg-desc {
+      font-size: 0.82em;
+      opacity: 0.72;
+      flex: 1;
+    }
+
+    .gg-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4em;
+      list-style: none;
+
+      li {
+        padding: 0.05em 0.5em;
+        font-size: 0.7em;
+        letter-spacing: 0.04em;
+        border: 1px solid var(--article-ending);
+        border-radius: $borderRadius;
+        opacity: 0.6;
+      }
+
+      // 判定哨兵：不是真游戏，角标要跟普通标签区分开
+      li.gg-sentinel {
+        border-style: dashed;
+        opacity: 0.9;
+      }
+    }
+
+    .gg-go {
+      align-self: flex-start;
+      padding: 0.25em 0.9em;
+      font-size: 0.78em;
+      color: var(--link);
+      border: 1px solid var(--link);
+      border-radius: $borderRadius;
+      text-decoration: none;
+    }
+
+    .gg-go:hover {
+      opacity: 0.8;
+    }
+
+    .gg-soon {
+      color: var(--txt);
+      border-color: var(--article-ending);
+      opacity: 0.5;
+    }
+  }
+</style>
