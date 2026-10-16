@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 343">
+  <!-- 一言卡片右下角的滑稽表情（左图镜像） -->
+  <circle cx="192" cy="300" r="130" fill="#ffe082"/>
+  <circle cx="192" cy="300" r="130" fill="none" stroke="#f0b429" stroke-width="6"/>
+  <circle cx="150" cy="252" r="14" fill="#333333"/>
+  <circle cx="234" cy="252" r="14" fill="#333333"/>
+  <path d="M124 300q68 60 136 0q-20 76-68 76t-68-76z" fill="#ffffff" stroke="#333333" stroke-width="8" stroke-linejoin="round"/>
+  <circle cx="108" cy="292" r="18" fill="#ffab91" opacity="0.8"/>
+  <circle cx="276" cy="292" r="18" fill="#ffab91" opacity="0.8"/>
+</svg>

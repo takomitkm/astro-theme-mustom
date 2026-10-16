@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- 自动滚动光标：外圈 + 上下箭头 + 中间短横。learn.microsoft.com 的 menurc
+       标准光标集里没有这一张（只有 IDC_ARROW/IDC_CROSS/IDC_WAIT 等 18 个），
+       所以照着 Windows 原生自动滚动光标的样式自己画一份，热点在正中 16 16。 -->
+  <circle cx="16" cy="16" r="10.5" fill="none" stroke="#000" stroke-width="1.6"/>
+  <path d="M16 7.4 L19.4 12.4 H12.6 Z" fill="#000"/>
+  <path d="M16 24.6 L12.6 19.6 H19.4 Z" fill="#000"/>
+  <rect x="12.2" y="15.1" width="7.6" height="1.8" fill="#000"/>
+</svg>

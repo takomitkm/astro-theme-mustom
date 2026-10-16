@@ -1,0 +1,3 @@
+来源 https://github.com/HesperusVenus/live2d 的 models/umaru（该仓库最后一次推送 2020-11-04）。
+仓库没有 LICENSE 文件，README 只写了模型名（干物妹小埋等 IP 角色），未给再分发授权。
+看板娘代码本身的授权见 /live2d/LICENSE-live2d-widget.txt。

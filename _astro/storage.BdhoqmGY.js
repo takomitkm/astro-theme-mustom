@@ -1,0 +1,1 @@
+const n=()=>window.btoa(window.location.host);function o(){let t=null;try{t=window.localStorage.getItem(n())}catch{return{}}if(t)try{return JSON.parse(t)}catch{return{}}return{}}function r(t){try{window.localStorage.setItem(n(),JSON.stringify(t))}catch{}}function a(t){const e={...o(),...t};return r(e),e}export{o as g,a as p};

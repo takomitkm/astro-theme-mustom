@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 128">
+  <!-- Empty 卡片平铺图案：安静的猫爪印（主题原创占位画） -->
+  <g fill="#e0e0e0">
+    <ellipse cx="48" cy="70" rx="14" ry="11"/>
+    <ellipse cx="30" cy="48" rx="7" ry="9" transform="rotate(-15 30 48)"/>
+    <ellipse cx="45" cy="42" rx="7" ry="9"/>
+    <ellipse cx="60" cy="46" rx="7" ry="9" transform="rotate(12 60 46)"/>
+    <ellipse cx="71" cy="58" rx="6" ry="8" transform="rotate(30 71 58)"/>
+  </g>
+</svg>
